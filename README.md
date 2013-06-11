@@ -1,4 +1,7 @@
-*IZP
+Hodnoceni
+---------
+
+* IZP:
     + Proj1: 4.5/5
     + Proj2: 3/10
 	+ Proj3: 5/10
