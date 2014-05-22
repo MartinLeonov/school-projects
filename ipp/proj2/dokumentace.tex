@@ -1,0 +1,142 @@
+\documentclass[10pt,a4paper,final]{article}
+% cestina a fonty
+\usepackage[czech]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{textcomp}
+\usepackage{times}
+% odsazeni prvniho radku
+\usepackage{indentfirst}
+% balicky pro odkazy
+\usepackage[bookmarksopen,colorlinks,plainpages=false,urlcolor=blue,
+unicode,linkcolor=black]{hyperref}
+\usepackage{url}
+% obrazky
+\usepackage[dvipdf]{graphicx}
+% velikost stranky
+\usepackage[top=3.5cm, left=2.5cm, text={17cm, 24cm}, ignorefoot]{geometry}
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  % nastaveni cislovani
+  \pagestyle{plain}
+  \pagenumbering{arabic}
+  \setcounter{page}{1}
+  
+  % nastaveni mezery mezi odstavci a odsazeni prvniho radku
+  \setlength{\parindent}{1cm}
+  \setlength{\parskip}{0.5cm plus4mm minus3mm}
+  
+  \noindent
+  Dokumentace úlohy CST: C Stats v~Python 3 do IPP 2013/2014 \\
+  Jméno a příjmení: Roman Blanco \\
+  Login: xblanc01 \\
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Úvod} \label{uvod}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    Tato dokumentace pojednává o~skriptu napsaném v~jazyce Python.
+    Jeho účelem je analyzovat soubory obsahující zdrojový kód jazyka C podle
+    standardu ISO C99.
+    Typ prováděné analýzy je vždy daný parametrem při spuštění skriptu. Níže
+    v~dokumentu naleznete popis implementace těchto typů analýzy či dalších
+    částí skriptu.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Zpracování parametrů} \label{zpracovani-parametru}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    Ke zpracování parametrů skript využívá standardní knihovnu jazyka Python --
+    \texttt{argparse}, díky které stačí nastavit ve skriptu názvy přepínačů a
+    typ ukládané hodnoty.
+
+    Použitím této knihovny je zároveň zajištěno částečné ověření parametrů.
+    Například pokud je skript spuštěný s~parametrem, který není mezi
+    nastavenými, skript se automaticky ukončí. Jelikož však výchozí metoda
+    obstarávající vypisovaní chyby parametrů nevyhovuje tím, že při chybě
+    parametrů vrací hodnotu 2, je potřeba předefinovat tu metodu vlastní.
+
+    Co však tato knihovna neřeší, je vícenásobné zadání stejného parametru.
+    Tento problém je vyřešený sečtením parametrů a ověřením, zda je daný
+    parametr zadán více než jedenkrát. Stejným způsobem je vyřešeno i zadání
+    více parametrů, které jsou dle zadání nekombinovatelné.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Analýza souboru} \label{analyza}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    \subsection{Klíčová slova} \label{klicova-slova}
+
+      Účelem této analýzy je sečíst všechna klíčová slova ze zdrojového
+      souboru, která se nevyskytují v~poznámkách, makrech a řetězcích.
+      Prvním krokem je tedy odstranění částí, které nemají být prohledávány,
+      z~načteného obsahu souboru. To je řešeno pomocí regulárních výrazů,
+      kterými se vyhledají a odstraní všechny komentáře, řetězce a makra. Poté
+      jsou, opět pomocí regulárních výrazu, vyhledána všechna slova, u~kterých
+      se zjišťuje, za jsou jedním z~hledaných klíčových slov. Pro tento
+      účel je do skriptu importován modul \texttt{ckeyword.py}, v~němž je
+      vytvořený seznam klíčových slov jazyka C, s~nimiž se vyhledaná slova 
+      porovnávají.
+
+    \subsection{Jednoduché operátory} \label{operatory}
+
+      Při analýze operátorů je potřeba, podobně jako u~analýzy klíčových slov,
+      odstranit všechny komentáře, řetězce a makra, a navíc ještě vyhledat a
+      odstranit deklarace ukazatelů, jelikož v~tomto případě není \texttt{*}
+      považována za operátor. Poté jsou již operátory vyhledány regulárním
+      výrazem a sečteny.
+
+    \subsection{Identifikátory} \label{identifikatory}
+
+      Implementace analýzy identifikátorů je téměř totožná jako analýza
+      klíčových slov. Jediným rozdílem je, že se sečtou slova, která nevyhovují
+      žádnému ze slov uložených v~seznamu v~importovaném modulu
+      \texttt{ckeyword.py}.
+
+    \subsection{Textový řetězec \texttt{pattern}} \label{retezec}
+
+      Analýza textového řetězce se spouští zadáním parametru
+      \texttt{-w=pattern}, kde \texttt{pattern} je přesný řetězec, který má být
+      v~analyzovaném souboru vyhledán. Počet výskytů se v~této analýze zjišťuje
+      metodou \texttt{count}.
+
+    \subsection{Komentáře} \label{komentare}
+
+      Počítání komentářů je implementováno jako konečný automat. Obsah
+      zdrojového souboru se prochází znak po znaku, přičemž na základě
+      posledních dvou znaků se nastavují hodnoty booleovských proměnných, které
+      následně reprezentují stavy konečného automatu -- proměnná
+      \texttt{comment} informuje, že aktuálně načítané znaky jsou součástí
+      komentáře, \texttt{oneLineComment} zda se jedná o~jednořádkový komentář a
+      proměnná \texttt{string} informuje že aktuální znaky jsou součástí
+      řetězce.
+
+      Řetězce jsou v~konečném automatu rozpoznávány, jelikož je nelze odstranit
+      před samotným počítáním znaků (mohou být součástí komentáře), avšak znaky
+      označující začátek či konec komentáře mohou být zapsané v~řetězci.
+      V~takovémto případě se však nejedná o~komentář a tyto znaky se nemají
+      započítávat.
+
+      Tato implementace načítání komentářů díky své konstrukci splňuje bonusové
+      rozšíření, spočívající v~započítávání znaků komentáře i v~rámci definic
+      makra.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Výstup} \label{vystup}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    Po analýze jednoho či více souborů je potřeba zpracovaná data vypsat podle 
+    volby buďto na standardní výstup, nebo do souboru. Jelikož je však ve 
+    výstupu součet výskytu zarovnaný doprava, je potřeba zjistit odsazení pro 
+    jednotlivé soubory. Pro odsazení je potřeba nejdříve nalézt nejdelší
+    řetězcovou délku cesty a součtu výskytu hledaných prvků u~analyzovaných
+    souborů. Od této hodnoty se poté odečítá řetězcová délka cesty a počtu
+    výskytů pro každý vypisovaný soubor.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+\end{document}

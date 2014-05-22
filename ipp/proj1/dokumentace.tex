@@ -1,0 +1,119 @@
+\documentclass[10pt,a4paper,final]{article}
+% cestina a fonty
+\usepackage[czech]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{textcomp}
+\usepackage{times}
+% odsazeni prvniho radku
+\usepackage{indentfirst}
+% balicky pro odkazy
+\usepackage[bookmarksopen,colorlinks,plainpages=false,urlcolor=blue,
+unicode,linkcolor=black]{hyperref}
+\usepackage{url}
+% obrazky
+\usepackage[dvipdf]{graphicx}
+% velikost stranky
+\usepackage[top=3.5cm, left=2.5cm, text={17cm, 24cm}, ignorefoot]{geometry}
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  % nastaveni cislovani
+  \pagestyle{plain}
+  \pagenumbering{arabic}
+  \setcounter{page}{1}
+  
+  % nastaveni mezery mezi odstavci a odsazeni prvniho radku
+  \setlength{\parindent}{1cm}
+  \setlength{\parskip}{0.5cm plus4mm minus3mm}
+  
+  \noindent
+  Dokumentace úlohy XQR: XML Query v PHP 5 do IPP 2013/2014 \\
+  Jméno a příjmení: Roman Blanco \\
+  Login: xblanc01 \\
+  
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Úvod} \label{uvod}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    Tato dokumentace pojednává o~skriptu napsaném v~jazyce PHP, jehož účelem je
+    vyhodnocování dotazu podobného příkazu \texttt{SELECT} jazyka SQL, který je 
+    prováděný nad vstupním XML souborem. Níže v~dokumentu naleznete popis
+    implementace jednotlivých částí skriptu, jako zpracovávání parametru nebo
+    aplikaci dotazu \texttt{SELECT} nad XML zdrojem.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Zpracování parametrů} \label{zpracovani-parametru}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    Ke~zpracování parametrů zadaných při spuštění skriptu je použita standardní
+    funkce jazyka PHP -- \texttt{getopt()}. Funkce usnadňuje načítání
+    parametrů tím, že stačí určit názvy přepínačů a o~načtení dat se postará
+    funkce sama. Jelikož však \texttt{getopt()} povoluje zápisy, které 
+    jsou vzhledem k~zadání nesprávné, je potřeba tyto možné výskyty chybných
+    parametrů ošetřit.
+    
+    Jednou z~problemových situací je zadání dvou stejných přepínačů. Tento
+    problem však lze ošetřit porovnáním počtu zadaných parametrů
+    s počtem zpracovaných parametrů. Pokud si nejsou rovny, parametry nebyly
+    korektně zadány a skript bude ukončen s příslušnou návratovou hodnotou.
+    
+    Další potíž této funkce nastává při načítání zkrácených přepínačů.
+    Tedy například pokud skript pracuje s přepínačem \texttt{-n}, ale bude 
+    spuštěn s chybně zapsaným přepínačem obsahující řetězec \texttt{"n"}
+    (například \texttt{-ano}), funkce s ním bude i přesto pracovat jako se 
+    správně zadaným parametrem \texttt{-n}.
+    Tento problem je ve skriptu vyřešen kontrolou názvů přepínačů
+    pomocí regulerních výrazů.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Načtení zdrojového XML souboru}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    Pro zjednodušení práce s~daty uloženými ve~zdrojovém XML souboru je použita
+    třída \texttt{SimpleXMLElement}, jejíž metody umožňují veškerou potřebnou
+    práci s~XML daty. Třída ze zdrojového XML kódu vytvoří nový stejnojmenný
+    objekt, tedy vícerozměrné pole s~atributy podle zdrojového XML kódu, tak
+    aby bylo následně možné s daty pracovat pomocí ostatních metod této třídy.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Zpracování SELECT dotazu} \label{zpracovani-select}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    Data ze~zdrojového souboru jsou tříděná na základě SELECT dotazu, zadaného
+    parametrem \texttt{query} nebo zapsaného ve~vstupním souboru s~dotazem, jež
+    se načítá parametrem \texttt{qf}.
+    Dotaz je rozdělený na podčásti \texttt{SELECT}, \texttt{LIMIT}, 
+    \texttt{FROM}, \texttt{WHERE} a \texttt{ORDER BY}. Každá z těchto podčástí
+    je načítána pomoci regularních výrazů a ukládana do pole, jehož atributy
+    jsou tvořeny názvy daných podčástí.
+
+    Nejsložitější k zachycení je část \texttt{WHERE}, jelikož podle zadání
+    může být zapsané libovolné množství výrazů porovnaných logickými výrazy
+    \texttt{AND} nebo \texttt{OR}, nebo může být celý výraz negován.
+    Z toho důvodu při načítání části \texttt{WHERE} namísto, aby se regularním
+    výrazem zachytila jen potřebná data, zachytí se kompletní výraz, jež je
+    dále rozdělován a porovnáván, zda-li vyhovuje syntaxi dané zadáním projektu.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Vyhodnocení dotazu nad daty} \label{vyhodnoceni-dotazu}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    Pro výběr dat požadovaných na základě \texttt{SELECT} dotazu je použita 
+    metoda \texttt{xpath()}. Ta umožnuje pomocí jazyka xpath získat potřebná
+    data z~pole dat načtených z~XML souboru.
+    
+    Jako první je načítaná část dotazu \texttt{FROM}, jelikož dle zadání
+    jsou vždy vyhledávána data objevující se v~prvním výskytu vyhovujícímu
+    výrazu \texttt{FROM}. Poté jsou části vyhodnocovány v pořadí
+    \texttt{SELECT}, \texttt{WHERE} a na konec je výsledek případně zkrácen 
+    na~stanovený limit, tedy požadavkem z~části \texttt{LIMIT}.
+    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+\end{document}
