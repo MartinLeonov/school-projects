@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -^-
+# -*- coding: utf-8 -*-
 #CST:xblanc01
 
 import sys
