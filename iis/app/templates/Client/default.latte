@@ -1,0 +1,164 @@
+{block content}
+<div class="container">
+ 
+{if $user->loggedIn && !$user->isInRole('client') ||
+	$isClient}
+<h2 n:block=title>Informace o klientovi</h2>
+
+{if isset($client) }
+<table class="table table-bordered table-hover">
+
+<tr><td>Prijmeni</td><td><strong>{$client->PRIJMENI}</strong></td></tr>
+<tr><td>Jmeno</td><td><strong>{$client->JMENO}</strong></td></tr>
+<tr><td>Tel. cislo</td><td><strong>{$client->TEL_CISLO}</strong></td></tr>
+<tr><td>E-mail</td><td><strong>{$client->EMAIL}</strong></td></tr>
+<tr><td>Heslo</td><td>
+{if $auth}
+<a n:href="ResetPassword! $client->OS_CISLO" class="btn btn-info">Resetovat heslo</a>
+{else}
+<a n:href="GeneratePassword! $client->OS_CISLO" class="btn btn-info">Vygenerovat heslo</a>
+{/if}
+</td></tr>
+
+</table>
+{if $user->isInRole('client')}
+<a n:href="Homepage:reservation" class="btn btn-success">Pridat rezervaci</a>
+{else}
+<a n:href="CreateReservation! $client->OS_CISLO" class="btn btn-success">Pridat rezervaci</a>
+{/if}
+
+
+
+<h2>Rezervace</h2>
+
+	{if count($rezervations) > 0}
+		{foreach $rezervations as $rez}
+			<div>
+				<p><strong>Datum rezervace: {$rez['DATUM']->format("d.m.Y")}</strong></p>
+			</div>
+			<div style="margin-left:16px;margin-bottom:16px;">
+			{if count($rez['POBYTY']) > 0}
+			<table class="table table-bordered table-hover" style="margin-bottom:8px;">
+				<thead>
+					<tr>
+						<td>Zaplaceno</td>
+						<td>Pobyt od</td>
+						<td colspan="2">Pobyt do</td>
+					</tr>
+				</thead>
+				<tbody>
+					{foreach $rez['POBYTY'] as $pobyt}
+					<tr>
+						<td>{$pobyt->PLATBA == 0 ? "NE" : "ANO"}</td>
+						<td>{$pobyt->DATUM_OD->format("d.m.Y")}</td>
+						<td>{$pobyt->DATUM_DO->format("d.m.Y")}</td>
+						<td><a n:href="pobytInfo id => $pobyt->ID_POBYT" 
+								class="btn btn-info">Informace</a></td>
+						<td><a n:href="DeletePobyt! $pobyt->ID_POBYT,$pobyt->VLASTNIK"
+								class="btn btn-danger {if $rez['DISABLED']}disabled{/if}">Zrusit</a></td>
+					</tr>
+					{/foreach}
+				</tbody>
+			</table>
+			{else}
+				<div class="alert alert-info" role="alert">V rezervaci nejsou zadne pobyty.</div>
+			{/if}
+			<a n:href="Client:addToRes id_rez => $rez['ID_REZ'], id_client => $rez['VLASTNIK']" 
+				class="btn btn-info {if $rez['DISABLED']}disabled{/if}">Pridat pobyt k rezervaci</a>
+
+			<a n:href="deleteReservation! $rez['ID_REZ'], $rez['VLASTNIK']" class="btn btn-danger {if $rez['DISABLED']}disabled{/if}">Zrusit rezervaci</a>
+
+			</div>
+		{/foreach}
+	{else}
+		<div class="alert alert-info" role="alert">Klient nema rezervace.</div>
+	{/if}
+
+
+<h2>Pobyty (bez rezervace)</h2>
+
+	{if count($pobyty) > 0}
+		<table class="table table-bordered table-hover" style="margin-bottom:8px;">
+		<thead>
+			<tr>
+				<td>Zaplaceno</td>
+				<td>Pobyt od</td>
+				<td colspan="2">Pobyt do</td>
+			</tr>
+		</thead>
+		<tbody>
+		{foreach $pobyty as $pobyt}
+			<tr>
+				<td>{$pobyt['PLATBA'] == 0 ? "NE" : "ANO"}</td>
+				<td>{$pobyt['DATUM_OD']->format("d.m.Y")}</td>
+				<td>{$pobyt['DATUM_DO']->format("d.m.Y")}</td>
+				<td><a n:href="pobytInfo id => $pobyt['ID_POBYT']" 
+						class="btn btn-info">Informace</a></td>
+				<td><a n:href="DeletePobyt! $pobyt['ID_POBYT'], $pobyt['VLASTNIK']"
+						class="btn btn-danger {if $pobyt['DISABLED']}disabled{/if}">Zrusit</a></td>
+			</tr>
+		{/foreach}
+		</tbody>
+		</table>
+	{else}
+		<div class="alert alert-info" role="alert">Klient nema zadne pobyty bez rezervace.</div>
+	{/if}
+
+	{if !$isClient}
+	<a n:href="Client:addToRes id_client => $client->OS_CISLO" 
+				class="btn btn-info">Pridat pobyt bez rezervace</a>
+	{/if}
+	
+
+<h2>Aktualni pobyt</h2>
+
+	{if isset($aktualni)}
+		<table class="table table-bordered table-hover" style="margin-bottom:8px;">
+
+			<tr>
+				<td>Zaplaceno</td>
+				<td>{$aktualni['PLATBA'] == 0 ? "NE" : "ANO"}</td>
+			</tr>
+			<tr>
+				<td>Pobyt od</td>
+				<td>{$aktualni['DATUM_OD']->format("d.m.Y")}</td>
+			</tr>
+			<tr>
+				<td>Pobyt do</td>
+				<td>{$aktualni['DATUM_DO']->format("d.m.Y")}</td>
+			</tr>
+			{if $aktualni['PLATBA'] == 0}
+			<tr>
+                {if !($user->isInRole('client'))}
+                    <td colspan="2"><a n:href="getBill! id => $aktualni['ID_POBYT']" 
+                            class="btn btn-success">Vystavit ucet</a></td>
+                {/if}
+			</tr>
+			{/if}
+		</table>
+	{else}
+		<div class="alert alert-info" role="alert">Klient nema zadny prave aktualni pobyt.</div>
+	{/if}
+{else}
+<div class="alert alert-danger" role="alert">Zadany klient neexistuje.</div>
+{/if}
+
+{/if}
+
+{if !$user->loggedIn }
+<div class="alert alert-info" role="alert">Pro spravovani uzivatelu se musite <a n:href="sign:in">prihlasit</a>.</div>
+{/if}
+
+{if $user->isInRole('client') && !$isClient }
+<div class="alert alert-danger" role="alert">Nemate dostatecne opravneni.</div>
+{/if}
+
+</div>
+
+<style>
+a.disabled {
+	pointer-events: none;
+	cursor: default;
+}
+</style>
+{/block}

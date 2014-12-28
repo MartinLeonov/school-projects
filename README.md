@@ -50,3 +50,18 @@
 - [proj3](/ity/proj3/proj3.tex) [LaTeX] [5/15]
 - ~~proj4~~
 - [proj5](/ity/proj5/proj5.tex) [LaTeX] [15/15]
+
+**imp - Microprocessors and Embedded Systems**
+- [proj1](/imp/Sources/main.c) [C] [14/14]
+
+**isa - Network Applications and Network Administration**
+- [xmpp client](/isa/xmppclient) [Python] [9/15]
+
+**itu - User Interface Programming**
+- [webhosting administration web ui](/itu/) [HTML/JS/PHP/SQL] [42/55]
+
+**ims - Modelling and Simulation**
+- [simulation of water corridor D-O-E](/ims/) [C++] [20/20]
+
+**iis - Information Systems**
+- [hotel information system](/iis/) [PHP, SQL] [30/30]

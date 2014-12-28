@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html><head>
+    <meta http-equiv="content-type" content="text/html; charset=ISO-8859-2">
+    <title>Projekt IIS</title>
+    <style type="text/css">
+    	table { border-collapse: collapse; }
+    	td, th { border: 1px solid black; padding: 0.3em 0.5em; text-align: left; }
+    	dt { font-weight: bold; margin-top: 0.5em; }
+    </style>
+</head>
+<body>
+
+<h1>Hotel (č.27)</h1>
+
+<dl>
+	<dt>Autoři</dt>
+	<dd>Adam Jež
+	    <a href="mailto:xjezad00@stud.fit.vutbr.cz">xjezad00@stud.fit.vutbr.cz</a> -
+		správa uživatelů, databázový subsystém
+	</dd>
+	<dd>Roman Blanco
+	    <a href="mailto:xblanc01@stud.fit.vutbr.cz">xblanc01@stud.fit.vutbr.cz</a> - 
+		uživatelské rozhraní, rezervace
+	</dd>
+	<dt>URL aplikace</dt>
+	<dd><a href="http://www.stud.fit.vutbr.cz/~xjezad00/IIS/www/">http://www.stud.fit.vutbr.cz/~xjezad00/IIS/www/IS</a></dd>
+</dl>
+
+<h2>Uživatelé systému pro testování</h2>
+<table>
+<tbody><tr><th>Login</th><th>Heslo</th><th>Role</th></tr>
+<tr><td>admin</td><td>heslo</td><td>Administrátor</td></tr>
+<tr><td>JanaNováková</td><td>heslo</td><td>Recepční</td></tr>
+<tr><td>xblanc01@stud.fit.vutbr.cz</td><td>heslo</td><td>Zákazník</td></tr>
+</tbody></table>
+
+<h2>Implementace</h2>
+<p>
+Po přihlášení může uživatel vytvořit rezervaci (záložka Rezervace v menu).<br>
+Po zadání období pro rezervaci jsou uživateli vypsány dostupné pokoje v daném
+období. <br/>Uživatel může zarezervovat více pokojů.
+Vytvořenou rezervaci nalezne v záložce Uživatel -> Osobní informace.<br/>
+Přes tuto stránku může dále po stisknutí tlačítka "Informace" zobrazit informace o rezervaci <br/>
+nebo přidat
+služby k rezervaci (tlačítko "Přidat službu")<br/> <strong>(řešeno v app/presenters/HomepagePresenter.php)</strong></p>
+
+<p>
+Po přihlášení jako recepční se v menu zobrazí položka "Správa uživatelů", kde je 
+výpis klientů a také formulář pro zaregistrování nového klienta.
+V podrobnějších informací je zobrazený výpis rezervací a pobytů.
+Při příchodu klienta do hotelu může přiřadit pobyt k rezervaci klienta, nebo může
+klienta ubytovat i bez rezervace, pokud je dostatek volných pokojů.
+K aktualnímu pobytu může recepční vystavit účet a převzít platbu za pobyt.
+<strong>(řešeno v app/presenters/ClientPresenter.php a app/presenters/ManagerPresenter.php)</strong></p>
+
+<p>
+Administrátor má stejné funkce jako recepční, navíc však může vytvářet účty
+pro nové recepční.</p>
+
+<h2>Instalace</h2>
+<ul>
+<li>Požadavky: PHP 5.5.9, MySQL databáze</li>
+<li>Rozbalit zip archiv, nahrát soubory na server, inicializovat databázi (cesta k inicializačnímu souboru: <strong>db/IIS.sql</strong>), upravit přihlašovací údaje do databáze (<strong>app/config/config.local.neon</strong>)
+</ul>
+<p>
+Na serveru eva.fit.vutbr.cz je potřeba nastavit v řetězci DNS mysql_socket, ukázka:<br>
+dns: 'mysql:host=127.0.0.1;mysql_socket=/var/run/mysql/mysql.sock';dbname=xjezad00'
+</p>
+
+<h2>Známé problémy</h2>
+U administrátora není implementována změna pokojů z časových důvodů
+
+</body></html>

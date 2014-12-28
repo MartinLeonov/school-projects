@@ -1,0 +1,59 @@
+html {
+    overflow-y: scroll;
+}
+
+body {
+    font: 14px/1.65 Verdana, "Geneva CE", lucida, sans-serif;
+    background: #ffffff;
+    color: #333;
+    margin: 16px auto;
+    max-width: 940px;
+    min-width: 420px;
+}
+
+div#banner {
+    height: 50px;
+    background-color: yellow;
+
+}
+
+div#banner h1 {
+    font: normal 150%/1.3 Georgia, "New York CE", serif;
+    color: black;
+    vertical-align: bottom;
+    -webkit-text-stroke: 1px rgba(0,0,0,0);
+}
+
+div#navbar {
+    background-color: green;
+    padding-bottom: -1px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    text-align: center;
+
+}
+
+div#navbar ul {
+}
+
+div#navbar ul li {
+    list-style-type: none;
+    display: inline;
+    padding-right: 20px;
+    font-size: 130%;
+}
+
+div#navbar ul li a {
+    background-color: #036;
+}
+
+div#signtext {
+    text-align: right;
+
+}
+
+div#signform {
+    display: none;
+    background: gray;
+}
+

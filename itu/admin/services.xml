@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?xml-stylesheet type="text/xsl" href="services.xsl"?>
+<services>
+	<service>
+		<name>Advertisment</name>
+		<start>10.12.2014</start>
+		<expire>10.12.2015</expire>
+		<status>active</status>
+		<paid>yes</paid>
+		<cost>20</cost>
+	</service>
+	<service>
+		<name>Webhosting</name>
+		<start>10.1.2014</start>
+		<expire>10.1.2015</expire>
+		<status>active</status>
+		<paid>yes</paid>
+		<cost>100</cost>
+	</service>
+	<service>
+		<name>Domain</name>
+		<start>10.1.2014</start>
+		<expire>22.8.2015</expire>
+		<status>active</status>
+		<paid>yes</paid>
+		<cost>10</cost>
+	</service>
+	<service>
+		<name>Storage capacity + 10GB</name>
+		<start>28.2.2013</start>
+		<expire>28.2.2014</expire>
+		<status>inactive</status>
+		<paid>yes</paid>
+		<cost>100</cost>
+	</service>
+</services>

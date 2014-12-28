@@ -1,0 +1,14 @@
+{block content}
+<div class="container">
+  <h2 n:block=title>Rezervace</h2>
+  {if $user->loggedIn}
+  	{if $user->isInRole('client')}
+  	{control reservationsForm}
+  	{else}
+  		<div class="alert alert-danger" role="alert">Zde vytvareji rezervaci pouze uzivatele. Pro vas je urcena <a n:href="Manager:">sprava uzivatelu</a></div>
+  	{/if}
+  {else}
+  	<div class="alert alert-info" role="alert">Pro vytvoreni rezervace se prosim <a n:href="sign:in back => 'Homepage:reservation'">prihlaste</a>.</div>
+  {/if}
+</div>
+{/block}

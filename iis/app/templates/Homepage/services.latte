@@ -1,0 +1,30 @@
+{block content}
+<div class="container">
+    {foreach $services as $row} 
+    <ul class="thumbnails">
+      <li class="span4" style="width: 100%" >
+        <div class="thumbnail">
+          <div class="caption" style="overflow: hidden;">
+            <img src="{$basePath}/images/services/{Nette\Utils\Strings::webalize($row->NAZEV)}.jpg" alt="{$row->NAZEV}" style="float: right;margin-left: 8px;">
+            <div>
+              <h3>{$row->NAZEV}</h3>
+              <p>{$row->POPIS}</p>
+              <p>
+                {if $user->loggedIn}
+                  {if $pobyt}
+                    <a n:href="OrderService! id => $id, service => $row->ID_SLUZBA" class="btn btn-success">Priobjednat: {$row->CENA}</a>
+                  {else}
+                    <div class="alert alert-info" role="alert">Sluzbu lze objednat pouze pri prave probihajicim pobytu.</div>
+                  {/if}
+                {else}
+                  <a n:href="Sign:in back => 'Homepage:services'" class="btn btn-primary"><abbr title="Pro rezervaci se prihlaste">Priobjednat: {$row->CENA}</abbr></a>
+                {/if}
+              </p>
+            </div>
+          </div>
+        </div>
+      </li>
+    </ul>
+    {/foreach}
+</div>
+{/block}

@@ -1,0 +1,20 @@
+Implementace XMPP/Jabber klienta.
+
+Umožňuje komunikovat prostřednictvím XMPP protokolu.
+Lze vytvořit nového uživatele, zobrazit seznam kontaktů,
+odesílat a přijímat zprávy.
+
+
+Příklad spušetění
+
+./xmppclient -l user:password -s netfox.fit.vutbr.cz -i
+./xmppclient -l user:password -s netfox.fit.vutbr.cz -c -w 30
+./xmppclient -l user:password -s netfox.fit.vutbr.cz -m "Hello world!" -u world@netfox.fit.vutbr.c
+
+
+Odevzdané soubory:
+
+README
+Makefile
+manual.pdf
+xmppclient

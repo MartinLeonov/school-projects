@@ -1,0 +1,104 @@
+{block content}
+<div class="container">
+ 
+{if $user->loggedIn && !$user->isInRole('client') ||
+	$user->isInRole('client') && $user->id == $pobyt->VLASTNIK}
+<h2 n:block=title>Informace o pobytu</h2>
+
+<table class="table table-bordered table-hover">
+
+<tr><td>Datum od</td><td><strong>{$pobyt->DATUM_OD->format("d.m.Y")}</strong></td></tr>
+<tr><td>Datum do</td><td><strong>{$pobyt->DATUM_DO->format("d.m.Y")}</strong></td></tr>
+<tr><td>Zaplaceno</td><td>
+
+{if $pobyt->PLATBA == 0}
+Nejprve je potreba vystavit ucet
+{else}
+{if $pobyt->PREVZAL == NULL}
+	{if $user->isInRole('staff')}
+ 		<a n:href="getPayment! id => $pobyt['ID_POBYT']" class="btn btn-success">Prevzit platbu</a>
+ 	{else}
+ 		<strong>NE</strong>
+ 	{/if}
+{else}
+Prevzala recepcni: {$prevzal}
+{/if}
+{/if}
+</td></tr>
+<tr><td>Castka</td><td><strong>{$pobyt->PLATBA == 0 ? "Nejprve je potreba vystavit ucet" : $pobyt->PLATBA}</strong></td></tr>
+
+</table>
+
+<h2>Rezervovane pokoje:</h2>
+{if count($rooms) > 0}
+<table class="table table-bordered table-hover" style="margin-bottom:8px;">
+<thead>
+	<tr>
+		<td>Pokoj c.</td>
+		<td>Typ</td>
+		<td>Popis</td>
+		<td>Kapacita</td>
+		<td>Pridat sluzbu</td>
+	</tr>
+</thead>
+<tbody>
+{foreach $rooms as $room}
+
+<tr>
+	<td>{$room['POKOJ']}</td>
+	<td>{$room['TYP']}</td>
+	<td>{$room['POPIS']}</td>
+	<td>{$room['KAPACITA']}</td>
+
+	{if $service != NULL}
+		<td><a n:href="OrderService! $room['ID_POBYT_POKOJ'], $service" class="btn btn-success">Pridat sluzbu</a></td>
+	{else}
+		<td><a n:href="Homepage:services id => $room['ID_POBYT_POKOJ']" class="btn btn-success">Pridat sluzbu</a></td>
+	{/if}
+</tr>
+
+{/foreach}
+</tbody>
+</table>
+{else}
+<div class="alert alert-info" role="alert">V pobytu nejsou zadne pokoje. To je trochu divne.</div>
+{/if}
+
+
+<h2>Objednane sluzby pokoje:</h2>
+{if count($services) > 0}
+<table class="table table-bordered table-hover" style="margin-bottom:8px;">
+<thead>
+	<tr>
+		<td>Pokoj c.</td>
+		<td>Sluzba</td>
+		<td>Datum objednani</td>
+	</tr>
+</thead>
+<tbody>
+{foreach $services as $service}
+
+<tr>
+	<td>c. {$service['POKOJ']}</td>
+	<td>{$service['NAZEV']}</td>
+	<td>{$service['DATUM_OD']}</td>
+</tr>
+
+{/foreach}
+</tbody>
+</table>
+{else}
+<div class="alert alert-info" role="alert">V pobytu nejsou zadne objednane sluzby.</div>
+{/if}
+{/if}
+
+{if !$user->loggedIn }
+<div class="alert alert-info" role="alert">Pro spravovani uzivatelu se musite <a n:href="sign:in">prihlasit</a>.</div>
+{/if}
+
+{if $user->isInRole('client') && $user->id != $pobyt->VLASTNIK}
+<div class="alert alert-danger" role="alert">Nemate dostatecne opravneni.</div>
+{/if}
+
+</div>
+{/block}

@@ -1,0 +1,726 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import argparse
+import sys
+import logging
+import re
+import socket
+import errno
+import xml.etree.ElementTree as et
+import base64
+import time
+from threading import Thread
+
+
+class Application:
+    """Main and interactive mode"""
+
+    def __init__(self):
+        setLogging()
+        param = Params()
+        param = param.loadArgs()
+        self.xmpp = Xmpp()
+        # create connection to server
+        if param.server is not None:
+            if param.port is not None:
+                conn = Connection(param.server, param.port)
+            else:
+                conn = Connection(param.server)
+            self.xmpp = Xmpp(conn)
+            # init xmpp stream
+            self.xmpp.init(param.server)
+        # register account
+        if param.register_user is not None:
+            self.xmpp.register(
+                param.server,
+                param.register_user[0],
+                param.register_user[1]
+            )
+        # login
+        if param.log_user is not None:
+            self.xmpp.login(
+                param.server,
+                param.log_user[0],
+                param.log_user[1]
+            )
+        # methods that can be run only when logged in
+        if self.xmpp.loggedIn:
+            # load contact list after login
+            self.xmpp.loadContacts(True)
+            # show contact list
+            if param.show_contactlist:
+                self.xmpp.loadContacts()
+                self.xmpp.showContacts()
+            # add contact
+            if param.add_user:
+                self.xmpp.addContact(param.add_user)
+            # send one message
+            if param.user and param.message:
+                self.xmpp.sendMsg(param.user, param.message)
+            # receive message`
+            if param.wait:
+                self.xmpp.recvMsg(param.wait, False)
+            # logout
+            if not param.interactive:
+                self.xmpp.logout()
+        # interactive mod
+        if param.interactive:
+            self.interactive()
+        self.xmpp.close()
+
+    def interactive(self):
+        """Read commands from stdin and execute methods
+        according to commands"""
+        rcvThread = ReceivingThread(self.xmpp)
+        rcvThread.setName('rcvThread')
+        rcvThread.daemon = True
+        rcvThread.start()
+        rcvThread.is_alive()
+        needToBeLogged = ["names", "add", "send", "whoami", "logout"]
+        while True:
+            try:
+                cmd = input(">> ").split(' ')
+                # skip if need to be logged and is not
+                if cmd[0] in needToBeLogged and not self.xmpp.loggedIn:
+                    sys.stderr.write("Not logged in\n")
+                    continue
+                # possible commands
+                if cmd[0] == "":
+                    pass
+                elif cmd[0] == "names":
+                    if self.xmpp.contactList is None:
+                        self.xmpp.loadContacts()
+                    self.xmpp.showContacts()
+                elif cmd[0] == "send":
+                    cmd = ' '.join(cmd).split(' ', 2)
+                    self.xmpp.sendMsg(cmd[1], cmd[2])
+                elif cmd[0] == "whoami":
+                    print(self.xmpp.account)
+                elif cmd[0] == "login":
+                    if self.xmpp.loggedIn:
+                        print("Already logged in")
+                        continue
+                    if self.xmpp.conn is None:
+                        if len(cmd) == 5:
+                            self.xmpp.conn = Connection(cmd[1], int(cmd[2]))
+                            del cmd[2]
+                        else:
+                            self.xmpp.conn = Connection(cmd[1])
+                        self.xmpp.init(cmd[1])
+                    self.xmpp.login(cmd[1], cmd[2], cmd[3])
+                elif cmd[0] == "status":
+                    if self.xmpp.loggedIn:
+                        print("Logged in")
+                    else:
+                        print("Unlogged")
+                elif cmd[0] == "help":
+                    print(
+                        "login    [server (port) username password]\n" +
+                        "status   []\n" +
+                        "whoami   []\n" +
+                        "names    []\n" +
+                        "send     [receiver message]\n" +
+                        "exit     []\n" +
+                        "help     []"
+                    )
+                elif cmd[0] == "exit":
+                    if self.xmpp.loggedIn:
+                        self.xmpp.logout()
+                    self.xmpp.close()
+                    break
+                else:
+                    sys.stderr.write("Not available command. Use 'help'\n")
+                # go to new command
+                continue
+            except IndexError:
+                sys.stderr.write("Wrong command arguments. Use 'help'\n")
+                continue
+            except Exception as e:
+                logging.error('E:\n' + e.strerror)
+                sys.stderr.write("Error (interactive): " + e.strerror + "\n")
+                sys.exit(1)
+        sys.exit(0)
+
+
+class Xmpp:
+    """XMPP operations"""
+
+    def __init__(self, connection=None):
+        """Load instance variable
+
+        Params:
+            connection -- Connection class instance
+        """
+        self.conn = connection
+        self.loggedIn = False
+        self.account = None
+        self.contactList = None
+
+    def init(self, server):
+        """Initialize XMPP stream
+
+        Params:
+            server -- xmpp server address
+        """
+        # init stream
+        initStream = et.Element('stream:stream')
+        initStream.set('xmlns', 'jabber:client')
+        initStream.set('xmlns:stream', 'http://etherx.jabber.org/streams')
+        initStream.set('to', server)
+        initStream.set('version', '1.0')
+        self.conn.send(initStream)
+        answer = self.conn.receive()
+        # check if stream is initialized
+        result = any(['stream' in item[1] for item in answer if
+                      item[0] == 'start'])
+        if not result:
+            logging.debug("! Stream initialization failed")
+        else:
+            logging.debug("* Stream initialization succeed")
+        # receive features
+        answer = self.conn.receive()
+        result = any(['features' in item[1] for item in answer])
+        if not result:
+            logging.debug("! Features not received")
+        else:
+            logging.debug("* Features received")
+
+    def register(self, server, username, password):
+        """Register new account on XMPP server
+
+        Params:
+            server   -- xmpp server address
+            username -- choosen new username
+            password -- password to new account
+        """
+        # init register
+        initRegister = et.Element('iq')
+        initRegister.set('to', server)
+        initRegister.set('type', 'get')
+        initRegister.set('id', 'reg_1')
+        query = et.SubElement(initRegister, 'query')
+        query.set('xmlns', 'jabber:iq:register')
+        self.conn.send(initRegister)
+        answer = self.conn.receive()
+        # check if required fields list was received
+        result = any(['result' == item[3].get('type') for item in answer])
+        if not result:
+            logging.debug("! Receiving required registration fields failed")
+        else:
+            logging.debug("* Receiving required registration fields succeed")
+        # send register message
+        registerMessage = et.Element('iq')
+        registerMessage.set('to', server)
+        registerMessage.set('type', 'set')
+        registerMessage.set('id', 'reg_2')
+        query = et.SubElement(registerMessage, 'query')
+        query.set('xmlns', 'jabber:iq:register')
+        user = et.SubElement(query, 'username')
+        user.text = username
+        passw = et.SubElement(query, 'password')
+        passw.text = password
+        self.conn.send(registerMessage)
+        answer = self.conn.receive()
+        # check if registration succeed
+        result = any(['result' == item[3].get('type') for item in answer])
+        if not result:
+            logging.debug("! New account registration failed")
+            errnum = [item[3].get('code') for item in answer if
+                      item[0] == 'start' and 'error' in item[1]]
+            sys.stderr.write("Registration failed: err {0}]".format(errnum[0]))
+        else:
+            logging.debug("* New account registration succeed")
+            print("New account '{0}@{1}' registered".format(username, server))
+
+    def login(self, server, username, password):
+        """Log-in to XMPP using PLAIN mechanism
+
+        Params:
+            server   -- xmpp server address
+            username -- users login name
+            password -- users password
+        """
+        # send login message
+        login = bytes("\0" + username + "\0" + password, 'utf-8')
+        initLogin = et.Element('auth')
+        initLogin.set('xmlns', 'urn:ietf:params:xml:ns:xmpp-sasl')
+        initLogin.set('mechanism', 'PLAIN')
+        initLogin.text = base64.b64encode(login).decode('utf-8')
+        self.conn.send(initLogin)
+        answer = self.conn.receive()
+        # check if user was successfully logged in
+        if any(['success' in item[1] for item in answer]):
+            self.loggedIn = True
+        self.account = username + "@" + server
+        if not self.loggedIn:
+            logging.debug("! Login failed")
+            sys.stderr.write("Login failed\n")
+            self.logout()
+            sys.exit(1)
+        else:
+            logging.debug("* Logged in")
+        # bind a resource
+        bindRes = et.Element('iq')
+        bindRes.set('type', 'set')
+        bindRes.set('id', 'bind_1')
+        bind = et.SubElement(bindRes, 'bind')
+        bind.set('xmlns', 'urn:ietf:params:xml:ns:xmpp-bind')
+        self.conn.send(bindRes)
+        answer = self.conn.receive()
+        result = any(['result' == item[3].get('type') for item in answer])
+        if not result:
+            logging.debug("! Resource binding failed")
+            sys.stderr.write("Resource binging failed - exiting\n")
+            self.logout()
+            sys.exit(1)
+        else:
+            logging.debug("* Resource binding succeed")
+        # init new session
+        initSession = et.Element('iq')
+        initSession.set('to', server)
+        initSession.set('type', 'set')
+        initSession.set('id', 'sess_1')
+        session = et.SubElement(initSession, 'session')
+        session.set('xmlns', 'urn:ietf:params:xml:ns:xmpp-session')
+        self.conn.send(initSession)
+        answer = self.conn.receive()
+        result = any(['result' == item[3].get('type') for item in answer])
+        if not result:
+            logging.debug("! Session establishment failed")
+            sys.stderr.write("Session establishment failed - exiting\n")
+            self.logout()
+            sys.exit(1)
+        else:
+            logging.debug("* Session establishment succeed")
+        # set presence as online
+        onlineStatus = et.Element('presence')
+        onlineStatus.set('id', 'login_1')
+        self.conn.send(onlineStatus)
+        answer = self.conn.receive()
+        # ensure user's online presence was set correctly
+        result = any(['presence' in item[1] for item in answer])
+        if not result:
+            logging.debug("! Setting online presence failed")
+        else:
+            logging.debug("* Online presence setting succeed")
+
+    def loadContacts(self, afterLogin=False):
+        """Load and print contact list
+
+        Params:
+            afterLogin -- turn off reporting for initial
+                          (after login) contact loading
+        """
+        # load contacts
+        loadContactList = et.Element('iq')
+        loadContactList.set('from', self.account)
+        loadContactList.set('type', 'get')
+        loadContactList.set('id', 'roster_1')
+        query = et.SubElement(loadContactList, 'query')
+        query.set('xmlns', 'jabber:iq:roster')
+        self.conn.send(loadContactList)
+        answer = self.conn.receive()
+        # check if contact list was received and print contact list
+        result = any(['result' == item[3].get('type') for item in answer])
+        if not result:
+            logging.debug("! Contact list not received")
+            if not afterLogin:
+                sys.stderr.write("Contact list not received")
+        else:
+            self.contactList = [(item[3].get('jid'), item[3].get('name'))
+                                for item in answer
+                                if item[3].get('jid') is not None
+                                and item[0] == 'start']
+            logging.debug("* Contact list loaded")
+
+    def showContacts(self):
+        """Print loaded contact list"""
+        if self.contactList is not None:
+            if len(self.contactList) == 0:
+                print("You have no contact in your list")
+            for jid, name in self.contactList:
+                print("- {0} <{1}>".format(str(name), jid))
+
+    def addContact(self, address, name="New Buddy"):
+        """Add new contact to contact list
+
+        Params:
+            address -- contact XMPP address
+            name    -- default name for new contact
+        """
+        # init adding contact
+        addContactInit = et.Element('iq')
+        addContactInit.set('xmlns', 'jabber:client')
+        addContactInit.set('type', 'set')
+        addContactInit.set('id', 'buddy_1')
+        query = et.SubElement(addContactInit, 'query')
+        query.set('xmlns', 'jabber:iq:roster')
+        item = et.SubElement(query, 'item')
+        item.set('jid', address)
+        item.set('name', name)
+        self.conn.send(addContactInit)
+        answer = self.conn.receive()
+        # send request for adding contact
+        addContactMsg = et.Element('presence')
+        addContactMsg.set('type', 'subscribe')
+        addContactMsg.set('to', address)
+        addContactMsg.set('id', 'buddy_2')
+        self.conn.send(addContactMsg)
+        answer = self.conn.receive()
+        if self.contactList is not None:
+            self.contactList.append((address, name))
+
+    def sendMsg(self, receiver, message):
+        """Send message
+
+        Params:
+            receiver -- receiver of message
+            message  -- message content
+        """
+        # create and send message
+        msg = et.Element('message')
+        msg.set('from', self.account)
+        msg.set('to', receiver)
+        msg.set('type', 'chat')
+        body = et.SubElement(msg, 'body')
+        body.text = message
+        self.conn.send(msg)
+
+    def recvMsg(self, timeout, interactive=False):
+        """Wait for receiving message and print message to stdout
+
+        Params:
+            timeout     -- time to wait for message
+            interactive -- running in interactive mode
+        """
+
+        self.conn.conn.settimeout(timeout)
+        try:
+            answer = self.conn.receive(interactive)
+            # reset waiting time
+            self.conn.conn.settimeout(10)
+            if answer is not None:
+                # check if message is chat message
+                message = [item[2] for item in answer
+                           if ('start' in item[0] and 'body' in item[1])]
+                if message:
+                    msgFrom = [item[3].get('from') for item in answer
+                               if ('start' in item[0])][0]
+                    # write out received message
+                    print("{0}: {1}".format(msgFrom, message[0]))
+                    logging.debug("* Message received")
+                # check if message is ping
+                ping = any(item for item in answer if ('ping' in item[1]))
+                if ping:
+                    pingId = [item[3].get('id') for item in answer][0]
+                    pingFrom = [item[3].get('from') for item in answer][0]
+                    pingTo = [item[3].get('to') for item in answer][0]
+                    # send pong
+                    pong = et.Element('iq')
+                    pong.set('from', pingTo)
+                    pong.set('to', pingFrom)
+                    pong.set('id', pingId)
+                    self.conn.send(pong)
+                    logging.debug("* Ping received")
+        except TimeoutError:
+            logging.debug("! No message received")
+            pass
+        except Exception as e:
+            logging.error('E:\n ' + e.strerror)
+            sys.stderr.write("Error in recvMsg: " + e.strerror + "\n")
+            sys.exit(1)
+
+    def logout(self):
+        """Set presence as logged out but keep connection alive"""
+        # send logout presence
+        logoutPresence = et.Element('presence')
+        logoutPresence.set('xmlns', 'jabber:client')
+        logoutPresence.set('type', 'unavailable')
+        logoutPresence.set('id', 'logout_1')
+        status = et.SubElement(logoutPresence, 'status')
+        status.text = "Logged out"
+        self.conn.send(logoutPresence)
+        answer = self.conn.receive()
+        # ensure user was logged out
+        result = any(['presence' in item[1] for item in answer])
+        if not result:
+            logging.debug("! Setting offline presence failed")
+        else:
+            logging.debug("* Offline presence setting succeed")
+            self.loggedIn = False
+
+    def close(self):
+        """Close XMPP stream and socket. ElementTree will not be
+        used in this case to avoid problem with no root element."""
+        if self.conn is None:
+            return
+        # close xmpp stream (et.Element not used)
+        closeStream = '</stream:stream>'
+        closeStream = bytes(closeStream, 'utf-8')
+        logging.info('C:\n' + closeStream.decode('utf-8'))
+        self.conn.conn.send(closeStream)
+        answer = self.conn.receive()
+        # ensure stream was closed correctly
+        result = any(['stream' in item[1] for item in answer if
+                      item[0] == 'end'])
+        if not result:
+            logging.debug("! Stream closing failed")
+        else:
+            logging.debug("* Stream closed peacefully")
+        self.conn.close()
+
+
+class ReceivingThread(Thread):
+
+    def __init__(self, xmpp):
+        Thread.__init__(self)
+        self.xmpp = xmpp
+
+    def run(self):
+        while True:
+            time.sleep(2)
+            if self.xmpp.loggedIn:
+                self.xmpp.recvMsg(10, True)
+
+
+class Connection:
+    """Creating and closing TCP connection with XMPP server, send
+    and receiver messages
+    """
+
+    def __init__(self, address, port=5222):
+        """Connect to server by adress and port
+
+        Params:
+            address -- server hostname
+            port    -- port that XMPP server use (default 5222)
+        """
+        self.BUFFER_SIZE = 4096
+        self.answers = list()
+        self.comm = Communication()
+        try:
+            socket.setdefaulttimeout(10)
+            TCP_IP = socket.gethostbyname(address)
+            TCP_PORT = port
+            self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.conn.connect((TCP_IP, TCP_PORT))
+        except Exception as e:
+            logging.error('E:\n ' + e.strerror)
+            sys.stderr.write("Connection error: " + e.strerror + "\n")
+            sys.exit(1)
+
+    def send(self, message):
+        """Send XML message to server
+
+        Params:
+            message -- ElementTree object that will be used to
+                       generate XML message and sent to XMPP server
+        """
+        message = self.comm.toXml(message)
+        logging.info('C:\n' + message.decode('utf-8'))
+        self.conn.send(message)
+
+    def receive(self, interactive=False):
+        """Receive and return message from server
+
+        Params:
+            interactive -- information if receiving is running
+                           from interactive mode or not
+        """
+        while True:
+            try:
+                answer = self.conn.recv(self.BUFFER_SIZE).decode('utf-8')
+                break
+            except socket.timeout:
+                if not interactive:
+                    stolenAnswer = self.answers.pop()
+                    if stolenAnswer is not None:
+                        # timeout but message stolen by iteractive
+                        return stolenAnswer
+                    logging.error('E:\n Connection timeout')
+                    sys.stderr.write("Connection error: Timeout\n")
+                    sys.exit(1)
+            except socket.error as serr:
+                if serr.errno != errno.EINTR:
+                    raise
+        logging.info('S:\n' + answer)
+        # get answer from server
+        answer = self.comm.fromXml(answer)
+        try:
+            answerId = [item[3].get('id') for item in answer
+                        if item is not None][0]
+        except:
+            answerId = None
+        self.answers.append(answer)
+        # check if interactive is not taking  restricted message
+        restricted = ['reg_1', 'reg_2', 'bind_1', 'sess_1', 'login_1',
+                      'roster_1', 'buddy_1', 'buddy_2', 'logout_1']
+        if interactive:
+            if answerId not in restricted:
+                return self.answers.pop()
+            else:
+                return None
+        return self.answers.pop()
+
+    def close(self):
+        """Close TCP connection"""
+        self.conn.close()
+
+
+class Communication:
+    """Create and parse XML messages"""
+
+    def __init__(self):
+        self.parser = et.XMLPullParser(['start', 'end'])
+
+    def toXml(self, elem):
+        """Generate XML from Element object with data
+        for XML message
+
+        Params:
+            elem -- ElementTree.Element object
+        """
+        return et.tostring(elem)
+
+    def fromXml(self, xml):
+        """Parse XML incrementally and return parsed data
+
+        Params:
+            xml -- xml stream data
+        """
+        self.parser.feed(xml)
+        parsedXml = list(self.parser.read_events())
+        elements = [(event, elem.tag, elem.text, elem.attrib)
+                    for event, elem in parsedXml]
+        return elements
+
+
+class Params:
+    """Load and check command line arguments"""
+
+    def loadArgs(self):
+        """Parse command line arguments"""
+        parser = argparse.ArgumentParser()
+        parser.add_argument('-s', '--server', action='store',
+                            metavar="server_name[:port]",
+                            help="specify server name")
+        parser.add_argument('-r', '--register-user', action='store',
+                            metavar="username:password",
+                            help="create new user on server")
+        parser.add_argument('-l', '--log-user', action='store',
+                            metavar="username:password",
+                            help="log in as specified user")
+        parser.add_argument('-c', '--show-contactlist', action='store_true',
+                            help="show contact list")
+        parser.add_argument('-a', '--add-user', action='store',
+                            metavar="JID",
+                            help="add user to contact list")
+        parser.add_argument('-m', '--message', action='store',
+                            metavar="message",
+                            help="combined with parameter -u, --user "
+                                 "set message that will be sent to specified"
+                                 " user")
+        parser.add_argument('-u', '--user', action='store',
+                            metavar="JID",
+                            help="receiver of message specified by -m or "
+                                 "--message")
+        parser.add_argument('-w', '--wait', action='store', type=int,
+                            metavar="sec",
+                            help="wait-time to receive message before exit")
+        parser.add_argument('-i', '--interactive', action='store_true',
+                            help="start in interactive mode")
+        parameters = parser.parse_args()
+        # check if parameters are correct
+        self.checkArgs(parameters)
+        # separate server and port
+        if parameters.server is not None and ":" in parameters.server:
+            (server, port) = parameters.server.split(':')
+            parameters.server = server
+            parameters.port = int(port)
+        else:
+            parameters.port = None
+        # separate username and password (login)
+        if parameters.log_user is not None and \
+           ":" in parameters.log_user:
+            parameters.log_user = parameters.log_user.split(':')
+        # separate username and password (registration)
+        if parameters.register_user is not None and \
+           ":" in parameters.register_user:
+            parameters.register_user = parameters.register_user.split(':')
+        return parameters
+
+    def checkArgs(self, parameters):
+        """Check if loaded parameters are correct
+
+        Params:
+            parameters -- loaded parameters
+        """
+        mailPattern = '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$'
+        error = False
+
+        # either server must be specified or client must run
+        # as interactive
+        error |= parameters.server is None and not parameters.interactive
+        # both message and username must be specified in same time
+        isSetMessage = parameters.message is not None
+        isSetUser = parameters.user is not None
+        error |= isSetMessage and not isSetUser or \
+            not isSetMessage and isSetUser
+        # address of registered user must have email format
+        if parameters.add_user:
+            error |= not re.match(mailPattern, parameters.add_user)
+        # receivers user address must have email format
+        if parameters.user:
+            error |= not re.match(mailPattern, parameters.user)
+
+        if error:
+            logging.error("E: wrong command line arguments")
+            sys.stderr.write(
+                "Parameters error: wrong command line arguments\n"
+                "For help run script with parameter -h or --help\n"
+            )
+            sys.exit(1)
+
+
+class LogFilter(object):
+    """Filtering log messages with higher level"""
+
+    def __init__(self, level):
+        self.__level = level
+
+    def filter(self, logRecord):
+        return logRecord.levelno <= self.__level
+
+
+def setLogging():
+    # logging configuration
+    logger = logging.getLogger()
+    logformat = '%(levelname)s:%(asctime)s (l.%(lineno)d) -- %(message)s\n'
+    logger.setLevel(logging.DEBUG)
+    # info log
+    handler = logging.FileHandler('log.txt', 'w')
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter(logformat)
+    handler.setFormatter(formatter)
+    handler.addFilter(LogFilter(logging.INFO))
+    logger.addHandler(handler)
+    # error log
+    handler = logging.FileHandler('error_log.txt', 'w')
+    handler.setLevel(logging.ERROR)
+    formatter = logging.Formatter(logformat)
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    # debug to stdout
+    if False:  # set True to enable debug
+        handler = logging.StreamHandler()
+        handler.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(logformat)
+        handler.setFormatter(formatter)
+        handler.addFilter(LogFilter(logging.DEBUG))
+        logger.addHandler(handler)
+
+if __name__ == '__main__':
+    app = Application()
+
+# vi: sts=4 et sw=4

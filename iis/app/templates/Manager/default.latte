@@ -1,0 +1,65 @@
+{block content}
+<div class="container">
+  <h2 n:block=title>Manazer uzivatelskych uctu</h2>
+
+{if $user->loggedIn && !$user->isInRole('client')}
+<table class="table table-bordered table-hover">
+<h2>Uzivatele</h2>
+<thead>
+	<tr>
+	  <td><strong>Prijmeni</strong></td>
+	  <td><strong>Jmeno</strong></td>
+	  <td colspan="3"><strong>E-mail</strong></td>
+	</tr>
+</thead>
+	<tbody>
+	{foreach $clients as $client}
+		<tr>
+		    <td>{$client->PRIJMENI}</td>
+		    <td>{$client->JMENO}</td>
+		    <td>{$client->EMAIL}</td>
+		    <td><a n:href="Client:default id => $client->OS_CISLO" class="btn btn-info">Informace</a></td>
+		    <td><a n:href="DeleteClient! id => $client->OS_CISLO" class="btn btn-danger">Odstranit</a></td>
+	    </tr>
+	{/foreach}
+	</tbody>
+</table>
+{control signClientUpForm}
+{/if}
+
+{if $user->loggedIn && $user->isInRole('admin')}
+<table class="table table-bordered table-hover">
+<h2>Recepcni</h2>
+<thead>
+	<tr>
+	  <td><strong>Jmeno</strong></td>
+	  <td><strong>Prijmeni</strong></td>
+	  <td colspan="3"><strong>Adresa</strong></td>
+	</tr>
+</thead>
+<tbody>
+{foreach $staff as $person}
+	<tr>
+	    <td>{$person->JMENO}</td>
+	    <td>{$person->PRIJMENI}</td>
+	    <td>{$person->ADRESA}</td>
+
+	    <td><a n:href="manager:editStaff id => $person->OS_CISLO" class="btn btn-info">Upravit</a></td>
+	    <td><a n:href="DeleteStaff! id => $person->OS_CISLO" class="btn btn-danger">Odstranit</a></td>
+    </tr>
+{/foreach}
+</tbody>
+</table>
+{control signStaffUpForm}
+{/if}
+
+{if !$user->loggedIn }
+<div class="alert alert-info" role="alert">Pro spravovani uzivatelu se musite <a n:href="sign:in">prihlasit</a>.</div>
+{/if}
+
+{if $user->isInRole('client')}
+<div class="alert alert-danger" role="alert">Nemate dostatecne opravneni.</div>
+{/if}
+
+</div>
+{/block}

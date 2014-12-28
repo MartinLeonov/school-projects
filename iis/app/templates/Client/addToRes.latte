@@ -1,0 +1,20 @@
+{block content}
+<div class="container">
+ 
+{if $user->loggedIn && !$user->isInRole('client')}
+<h2 n:block=title>Pridani pobytu{if isset($param['id_rez'])} k rezervaci{/if}</h2>
+
+{control reservationsForm}
+
+{/if}
+
+{if !$user->loggedIn }
+<div class="alert alert-info" role="alert">Pro spravovani uzivatelu se musite <a n:href="sign:in">prihlasit</a>.</div>
+{/if}
+
+{if $user->isInRole('client') }
+<div class="alert alert-danger" role="alert">Nemate dostatecne opravneni.</div>
+{/if}
+
+</div>
+{/block}

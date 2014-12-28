@@ -1,0 +1,239 @@
+\documentclass[11pt,a4paper]{article}
+% rozmery stranky
+\usepackage[left=1.5cm,text={18cm, 25cm},top=2.5cm]{geometry}
+% cestina a fonty
+\usepackage[czech]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+% dalsi balicky
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{indentfirst}
+\usepackage{url}
+\usepackage[bookmarksopen,colorlinks,plainpages=false,urlcolor=blue,
+unicode,linkcolor=black]{hyperref}
+
+
+\begin{document}
+
+  \begin{titlepage}
+    \begin{center}
+      \Huge
+      \textsc{Fakulta informačních technologií \\
+              Vysoké učení technické v~Brně}
+      \vspace{100px}
+      \begin{figure}[!h]
+        \centering
+        \includegraphics[height=5cm]{logo}
+      \end{figure}
+      \\[50mm]
+      \LARGE{Dokumentace k projektu předmětu IFJ \,--\, XMPP/Jabber klient}
+      \vfill
+    \end{center}
+    \Large{Roman Blanco (xblanc01) \hfill 29.11.2014}
+
+  \end{titlepage}
+
+  \pagestyle{plain}
+  \thispagestyle{empty}
+  \pagenumbering{gobble}
+  \tableofcontents
+  \newpage
+
+  \pagestyle{plain}
+  \pagenumbering{arabic}
+  \setcounter{page}{3}
+  
+  \setlength{\parindent}{1cm}
+  \setlength{\parskip}{0.5cm plus4mm minus3mm}
+
+  \section{Úvod} \label{uvod}
+
+    Cílem zadaného projektu bylo navrhnout a vytvořit klienta, umožňujícího
+    komunikaci prostřednictvím XMPP protokolu. Klient by měl mít schopnosti 
+    přijímat a odesílat zprávy, přidávat nové a zobrazovat stávající kontakty
+    v seznamu kontaktů, registrovat nového uživatele v síti a také pracovat v
+    interaktivním režimu.
+
+  \section{XMPP/Jabber protokol} \label{xmpp}
+
+    Při použití XMPP protokolu je komunikace zapouzdřována do XML zpráv,
+    podrobně
+    popsaných v několika RFC, které jsou dále zpracovávány serverem či
+    klientem. Pro možnost komunikace je potřeba, kromě klienta schopného
+    zpracovat zprávy protokolu, mít zaregistrovaný účet na serveru, který se
+    nazývá Jabber ID (často používaná zkratka je JID) a má tvar jako běžné
+    emailové adresy. Standartně servery XMPP komunikují na portu 5222.
+
+  \section{Popis implementace} \label{implementace}
+
+    Pro implementaci klienta byl použit skriptovací jazyk Python pro jeho
+    jednoduchost a dostupnost knihoven potřebných pro vypracování zadaného
+    projektu.
+
+    \subsection{Zpracování parametrů} \label{parametry}
+
+      Počáteční fází implementace bylo zpracování parametrů příkazového řádku.
+      K tomuto účelu byla použita standardní knihovna jazyka
+      Python \,--\, \texttt{argparse}. Díky použití knihovny stačí nastavit
+      ve skriptu názvy přepínačů a typ ukládané hodnoty. Knihovna také
+      zajišťuje částečné ověření parametrů. Veškeré zpracování parametrů
+      příkazového řádku probíhá ve třidě \texttt{Params}.
+
+    \subsection{Připojení k serveru} \label{pripojeni}
+
+      Jednou z nejpodstatnějších částí projektu je komunikace se serverem, bez
+      níž by nebylo možné v implementaci pokračovat. Komunikace klienta se 
+      serverem je vyřešena ve třídě \texttt{Connection} a byla pro ni 
+      použita knihovna \texttt{socket}.
+      Pomocí metod knihovny se klient připojí na zadaný server, odesílá zprávy
+      od klienta a přijímá zprávy přicházející od serveru.
+
+    \subsection{Zpracování XML zpráv} \label{zpracovani-xml}
+
+      Pro umožnění komunikace mezi klientem a serverem bylo potřeba zajistit
+      zpracování přijímaných zpráv. Komunikace XMPP protokolu je
+      implementována jako stream. Inicializace XMPP streamu začíná uvozující
+      značkou \texttt{<stream:stream>}, a ukončující značka
+      \texttt{</stream:stream>} je zaslána až při zakončení komunikace s
+      XMPP serverem
+      (viz \href{http://xmpp.org/rfcs/rfc3920.html#streams}{RFC 3920}).
+      Použitím běžného parsování by došlo k ukončení chybou ve chvíli, kdy by
+      parser nenalezl ukončující značku. Z toho důvodu bylo pro zpracování XML
+      zpráv potřeba použít iterativní parsování. Parsování a vytváření XML
+      zpráv je implementováno ve třídě \texttt{Communication}.
+
+    \subsection{Komunikace s XMPP serverem}
+
+      Vytváření a zpracování obsahu pro komunikaci s XMPP serverem se odehrává
+      ve třídě \texttt{Xmpp}.
+      První metoda této třídy, která se spustí při komunikaci
+      s XMPP serverem je \texttt{init()}. Slouží k inicializaci XML streamu
+      a načtení možností pro přihlášení se k účtu. Pro přihlášení slouží
+      metoda \texttt{login()}. Ta prostřednictvím jednoho z přihlašovacích
+      mechanizmů ověří přihlašovací údaje uživatele,
+      a buďto uživatele přihlásí, nebo aplikaci ukončí.
+      Dále jsou implementovány metody pro načtení a vypsaní seznamu kontaktů
+      (\texttt{loadContacts()}, \texttt{showContacts()}), přidání uživatele do
+      seznamu kontaktů (\texttt{addContact()}), registraci nového uživatele
+      (\texttt{register()}), přijetí chat zprávy od serveru
+      (\texttt{recvMsg()}) a pro odhlášení a ukončení streamu
+      (\texttt{logout()}, \texttt{(close())})
+
+    \subsection{Běh programu a interaktivní mód}
+
+      Volání jednotlivých metod pro komunikaci s XMPP probíhá ve třídě
+      \texttt{Application} v pořadí, jež je dáno zadáním, a lze je také
+      kombinovat pomocí parametrů příkazového řádku. Pokud je program spuštěn
+      v interaktivním módu, jsou tyto metody volány podle příkazu uživatele.
+      V interaktivním módu má uživatel k dispozici příkazy:
+
+      \begin{description}
+        \item[login] přihlášení, pokud byl interaktivní mód spuštěn bez
+                     poskytnutí přihlašovacích údajů
+        \item[status] vypsaní zda je uživatel přihlášený nebo ne
+        \item[whoami] zobrazení JID uživatele
+        \item[names] zobrazení seznamu kontaktů uživatele
+        \item[send] odeslání chat zprávy jinému uživateli
+        \item[exit] ukončení interaktivního módu
+        \item[help] vypsaní nápovědy
+      \end{description}
+
+  \section{Zajímavější pasáže implementace}
+
+    Zajímavá část implementace je u interaktivního režimu. Jelikož zde mohou
+    zprávy přicházet kdykoliv, je potřeba zajistit neustálé načítání ze
+    serveru. To je řešeno pomocí vytvoření dalšího vlákna, které má za úkol
+    pouze načítat příchozí zprávy.
+
+    Protože však je zároveň potřeba mít
+    možnost načíst zpětnou vazbu od serveru po odeslání požadavku, je nutno
+    zajistit, aby tuto zpětnou vazbu nepřevzala právě metoda běžící ve
+    druhém vlákně. Řešení je implementováno tak, že se odpovědi dočasně
+    ukládají do seznamu spolu s transakčním identifikátorem který je u zpětné
+    vazby serveru stejný, jako u odeslaného požadavku. Podle identifikátoru se
+    poté vrátí odpověď tomu vláknu, kterému patří a odstraní se ze seznamu.
+
+  \section{Použité knihovny jazyka Python}
+
+    Při implementaci projektu byly použity tyto standardní knihovny jazyka
+    Python:
+
+    \begin{description}
+      \item[argparse] načtení parametrů příkazové řádky
+      \item[sys] kvůli zápisu na \texttt{STDERR} při chybě
+      \item[logging] k logování chyb a příchozích a odchozích zpráv 
+      \item[re] ke kontrole zda zadané JID odpovídají správnému formátu
+      \item[socket] k zajištění spojení se serverem
+      \item[errno] pro odchycení \texttt{EINTR} \,--\, Interrupted system call
+      \item[xml.etree.ElementTree] pro parsování a vytváření XML zpráv
+      \item[base64] pro zakódování přihlašovacích údajů
+      \item[time] pro metodu \texttt{sleep()} k uspaní programu na zadaný čas
+      \item[threading] pro použití vláken
+    \end{description}
+
+  \section{Návod k použití}
+    
+    Pro spuštění je potřeba mít nainstalovaný interpret jazyka Python ve verzi
+    3.4. Práva na spouštění obstará Makefile přiložený ke skriptu.
+
+    \noindent
+    Ukázka spuštění a přihlášení prostředníctvím interaktivního režimu:
+    \begin{lstlisting}
+      ./xmppclient -i
+      >> help 
+      login    [server (port) username password]
+      status   []
+      whoami   []
+      names    []
+      send     [receiver message]
+      exit     []
+      help     []
+      >> login netfox.fit.vutbr.cz user password
+      >> whoami
+      user@netfox.fit.vutbr.cz
+      >> status
+      Logged in
+      >> exit
+    \end{lstlisting}
+
+    \noindent
+    Ukázka spuštění a zobrazení kontaktů přihlášeného uživatele:
+    \begin{lstlisting}
+      ./xmppclient -s netfox.fit.vutbr.cz -l user:password -c
+      - None <test@netfox.fit.vutbr.cz>
+      - New Buddy <anyone@netfox.fit.vutbr.cz>
+      - None <zkouska@netfox.fit.vutbr.cz>
+    \end{lstlisting}
+
+  \section{Závěr}
+
+  Vzhledem k tomu, že jazyk Python je multiplatformní a k implementaci nebyly
+  použity knihovny třetích stran, měl by být klient spustitelný na jakékoliv
+  platformě s touto verzí interpretu.
+
+  Výsledný program lze použít k jednoduché komunikaci, nicméně díky nízké
+  uživatelské přístupnosti by bylo vhodnější řešení využít program
+  ke komunikaci mezi několika programy.
+
+  Díky rozdělení kódu do logických struktur by mělo být možné kód jednoduše
+  editovat a přizpůsobit požadovaným účelům.
+
+  \section{Zdroje}
+
+    \begin{enumerate}[label={[\arabic*]}]
+      \item RFC 3920 \href{https://tools.ietf.org/html/rfc3920}
+                          {tools.ietf.org/html/rfc3920}
+      \item RFC 3921 \href{https://tools.ietf.org/html/rfc3921}
+                          {tools.ietf.org/html/rfc3921}
+      \item RFC 6120 \href{https://tools.ietf.org/html/rfc6120}
+                          {tools.ietf.org/html/rfc6120}
+      \item RFC 6121 \href{https://tools.ietf.org/html/rfc6121}
+                          {tools.ietf.org/html/rfc6121}
+      \item Dokumentace jazyka Python 3.4 \href{https://docs.python.org/3.4/}
+                                               {docs.python.org/3.4}
+
+    \end{enumerate}
+
+\end{document}

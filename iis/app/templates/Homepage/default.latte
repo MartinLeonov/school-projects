@@ -1,0 +1,118 @@
+{block content}
+<div class="container">
+  <section id="carousel" class="hidden-phone">
+    <div id="myCarousel" class="carousel slide">
+      <ol class="carousel-indicators">
+        <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
+        <li data-target="#myCarousel" data-slide-to="1"></li>
+        <li data-target="#myCarousel" data-slide-to="2"></li>
+      </ol>
+      <div class="carousel-inner">
+        <div class="active item">
+          <img src="{$basePath}/images/room1_large.jpg" alt="">
+          <div class="carousel-caption">
+            <h4>Sestiluzko</h4>
+          </div>
+        </div>
+        <div class="item">
+          <img src="{$basePath}/images/room2_large.jpg" alt="">
+          <div class="carousel-caption">
+            <h4>Dvouluzko</h4>
+          </div>
+        </div>
+        <div class="item">
+          <img src="{$basePath}/images/room3_large.jpg" alt="">
+          <div class="carousel-caption">
+            <h4>Jednoluzko</h4>
+          </div>
+        </div>
+      </div>
+      <a class="left carousel-control" href="#myCarousel" data-slide="prev">&lsaquo;</a>
+      <a class="right carousel-control" href="#myCarousel" data-slide="next">&rsaquo;</a>
+    </div>
+  </section>
+  <section id="offers">
+    <table class="table table-bordered table-hover">
+      <h2>Cenik</h2>
+      <thead>
+        <tr>
+          <td><strong>Pokoje</strong></td>
+          <td><strong>Volne pokoje</strong></td>
+          <td colspan="2"><strong>Cena</strong></td>
+        </tr>
+      </thead>
+      <tbody>
+        {foreach $types as $row} 
+          <tr>
+            <td>{$row->TYP}</td>
+            <td>{$row->COUNT_FREE}</td>
+            <td>{$row->CENA_DEN},-</td>
+            <td class="order"><a n:href="Homepage:reservation id=> $row->ID" class="btn btn-success">objednat</a></td>
+          </tr>
+        {/foreach}
+      </tbody>
+    </table>
+  </section>
+  <section id="contact">
+    <h2>Kontakt</h2>
+    <div id="map_canvas"></div>
+    <address style="float:left;">
+      <strong>Twitter, Inc.</strong><br>
+      795 Folsom Ave, Suite 600<br>
+      San Francisco, CA 94107<br>
+      <abbr title="Phone">P:</abbr> (123) 456-7890
+    </address>
+  </section>
+</div>
+{/block}
+
+{block scripts}
+{include parent}
+<script>
+  $('.carousel').carousel({
+    interval: 5000,
+    pause: "hover"
+  })
+</script>
+<script src="https://maps.googleapis.com/maps/api/js"></script>
+<script>
+    function initialize() {
+        var myLatLng = new google.maps.LatLng(49.226544,16.597122);
+        var mapCanvas = document.getElementById('map_canvas');
+        var mapOptions = {
+          center: myLatLng,
+          zoom: 16,
+          mapTypeId: google.maps.MapTypeId.ROADMAP,
+          disableDefaultUI: true,
+          draggable: false, zoomControl: false, 
+          scrollwheel: false, disableDoubleClickZoom: true
+        }
+        var map = new google.maps.Map(mapCanvas, mapOptions)
+        var marker = new google.maps.Marker({
+            position: myLatLng,
+            map: map,
+            title: 'Zde se nachazi hotel!',
+            url: 'https://goo.gl/maps/UwgYv'
+        });
+        google.maps.event.addListener(marker, 'click', function() {
+            window.location.href = marker.url;
+        });
+
+    }
+    google.maps.event.addDomListener(window, 'load', initialize);
+</script>
+
+{block head}
+<style>
+  .table td.order{
+     text-align: right;   
+  }
+  div#map_canvas {
+    width: 200px;
+    height: 200px;
+    background-color: #CCC;
+    float: left;
+    margin-right: 12px;
+  }
+</style>
+{/block}

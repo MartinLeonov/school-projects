@@ -1,0 +1,216 @@
+-- Adminer 4.1.0 MySQL dump
+
+SET NAMES utf8;
+SET time_zone = '+00:00';
+SET foreign_key_checks = 0;
+SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
+
+USE `IIS`;
+
+DROP TABLE IF EXISTS `AUTENTIFIKACE`;
+CREATE TABLE `AUTENTIFIKACE` (
+  `UZIV_JMENO` varchar(64) COLLATE utf8_bin NOT NULL,
+  `HESLO` char(60) COLLATE utf8_bin NOT NULL,
+  `KLIENT` int(8) unsigned DEFAULT NULL,
+  `RECEPCNI` int(8) unsigned DEFAULT NULL,
+  PRIMARY KEY (`UZIV_JMENO`),
+  KEY `KLIENT` (`KLIENT`),
+  KEY `RECEPCNI` (`RECEPCNI`),
+  CONSTRAINT `AUTENTIFIKACE_ibfk_1` FOREIGN KEY (`KLIENT`) REFERENCES `KLIENT` (`OS_CISLO`),
+  CONSTRAINT `AUTENTIFIKACE_ibfk_2` FOREIGN KEY (`RECEPCNI`) REFERENCES `RECEPCNI` (`OS_CISLO`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+INSERT INTO `AUTENTIFIKACE` (`UZIV_JMENO`, `HESLO`, `KLIENT`, `RECEPCNI`) VALUES
+('IvetaDorazilová', '$2y$10$1VfZ7TWHDkezhtvxoZsrYucQ0d0xT2lf8aLxKBzzOKQrqVfOyrjyC', NULL, 12),
+('JanaNováková',  '$2y$10$j.VZG02eR5igEMTsepy0COxAOhpU2HOERTPBKlPS1oI7D4utcaLeO', NULL, 14),
+('KatarinaTrefná',  '$2y$10$66btsOnci8n6/SZAXHX99ujCSydjJCyBvNYm0XZPuWjB1Z2WmK5pK', NULL, 16),
+('LucieKrivá',  '$2y$10$zVw6/XJL5JWzOzRDH3w7yOBLa7EySrph8SE4VGhtJaPqYuSBeNy6m', NULL, 15),
+('VlastaBednárová', '$2y$10$LoVgpa24Y6327Fn1jSqo7uLM4PcIsnKmKavSJVRiZHgjEV4zt3oh2', NULL, 13),
+('admin', '$2y$10$RLSxxnLmu9hG5nqPnjEnk.fam.UBXy58h7jotrLzNV9D6ewtUKjsi', NULL, NULL),
+('xblanc01@stud.fit.vutbr.cz',  '$2y$10$RLSxxnLmu9hG5nqPnjEnk.fam.UBXy58h7jotrLzNV9D6ewtUKjsi', 2,  NULL);
+
+DROP TABLE IF EXISTS `CENA`;
+CREATE TABLE `CENA` (
+  `ID_CENA` int(4) NOT NULL AUTO_INCREMENT,
+  `CENA_DEN` decimal(10,0) NOT NULL,
+  `DATUM_OD` date NOT NULL,
+  `DATUM_DO` date NOT NULL,
+  `TYP_ID` int(8) unsigned NOT NULL,
+  PRIMARY KEY (`ID_CENA`),
+  KEY `TYP_ID` (`TYP_ID`),
+  CONSTRAINT `CENA_ibfk_1` FOREIGN KEY (`TYP_ID`) REFERENCES `TYP_POKOJE` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+INSERT INTO `CENA` (`ID_CENA`, `CENA_DEN`, `DATUM_OD`, `DATUM_DO`, `TYP_ID`) VALUES
+(1, 400,  '1970-07-01', '1970-08-31', 1),
+(2, 350,  '1970-09-01', '1970-06-30', 1),
+(3, 150,  '1970-07-01', '1970-08-31', 2),
+(4, 140,  '1970-09-01', '1970-06-30', 2),
+(5, 100,  '1970-07-01', '1970-08-31', 3),
+(6, 110,  '1970-09-01', '1970-06-30', 3);
+
+DROP TABLE IF EXISTS `KLIENT`;
+CREATE TABLE `KLIENT` (
+  `OS_CISLO` int(8) unsigned NOT NULL AUTO_INCREMENT,
+  `PRIJMENI` varchar(32) COLLATE utf8_bin NOT NULL,
+  `JMENO` varchar(32) COLLATE utf8_bin NOT NULL,
+  `EMAIL` varchar(64) COLLATE utf8_bin DEFAULT NULL,
+  `TEL_CISLO` varchar(16) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`OS_CISLO`),
+  UNIQUE KEY `EMAIL` (`EMAIL`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+INSERT INTO `KLIENT` (`OS_CISLO`, `PRIJMENI`, `JMENO`, `EMAIL`, `TEL_CISLO`) VALUES
+(2, 'Blanco', 'Roman',  'xblanc01@stud.fit.vutbr.cz', '+420732265489'),
+(3, 'Tichý',  'Jaroslav', 'JaroslavTichy@seznam.cz',  '+420739457315'),
+(4, 'Jez',  'Adam', 'xjezad00@stud.fit.vutbr.cz', '736182739');
+
+DROP TABLE IF EXISTS `POBYT`;
+CREATE TABLE `POBYT` (
+  `ID_POBYT` int(8) unsigned NOT NULL AUTO_INCREMENT,
+  `DATUM_OD` date NOT NULL,
+  `DATUM_DO` date NOT NULL,
+  `SLEVA` int(4) DEFAULT '0',
+  `PLATBA` int(8) unsigned DEFAULT '0',
+  `PREVZAL_RECEP` int(8) unsigned DEFAULT NULL,
+  `ID_REZ` int(8) unsigned DEFAULT NULL,
+  `VLASTNIK` int(8) unsigned NOT NULL,
+  PRIMARY KEY (`ID_POBYT`),
+  KEY `PREVZAL_RECEP` (`PREVZAL_RECEP`),
+  KEY `VLASTNIK` (`VLASTNIK`),
+  KEY `ID_REZ` (`ID_REZ`),
+  CONSTRAINT `POBYT_ibfk_3` FOREIGN KEY (`PREVZAL_RECEP`) REFERENCES `RECEPCNI` (`OS_CISLO`),
+  CONSTRAINT `POBYT_ibfk_4` FOREIGN KEY (`VLASTNIK`) REFERENCES `KLIENT` (`OS_CISLO`),
+  CONSTRAINT `POBYT_ibfk_5` FOREIGN KEY (`ID_REZ`) REFERENCES `REZERVACE` (`ID_REZ`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+INSERT INTO `POBYT` (`ID_POBYT`, `DATUM_OD`, `DATUM_DO`, `SLEVA`, `PLATBA`, `PREVZAL_RECEP`, `ID_REZ`, `VLASTNIK`) VALUES
+(1, '2014-11-01', '2014-11-14', 5,  0,  NULL, NULL, 2),
+(2, '2014-04-07', '2014-04-14', 8,  0,  NULL, NULL, 2),
+(3, '2014-03-01', '2014-03-14', 0,  8000, 12, NULL, 3),
+(4, '2014-03-04', '2014-03-14', 0,  7000, 13, 1,  4),
+(5, '2014-02-25', '2014-03-04', 0,  9000, 14, 1,  4),
+(6, '2014-02-04', '2014-03-10', 0,  4000, 15, 2,  4);
+
+DROP TABLE IF EXISTS `POBYT_POKOJ`;
+CREATE TABLE `POBYT_POKOJ` (
+  `ID_POBYT_POKOJ` int(8) unsigned NOT NULL AUTO_INCREMENT,
+  `POBYT` int(8) unsigned NOT NULL,
+  `POKOJ` int(8) unsigned NOT NULL,
+  `LIDI` int(2) NOT NULL,
+  PRIMARY KEY (`ID_POBYT_POKOJ`),
+  KEY `POBYT` (`POBYT`),
+  KEY `POKOJ` (`POKOJ`),
+  CONSTRAINT `POBYT_POKOJ_ibfk_1` FOREIGN KEY (`POBYT`) REFERENCES `POBYT` (`ID_POBYT`),
+  CONSTRAINT `POBYT_POKOJ_ibfk_2` FOREIGN KEY (`POKOJ`) REFERENCES `POKOJ` (`CISLO`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+INSERT INTO `POBYT_POKOJ` (`ID_POBYT_POKOJ`, `POBYT`, `POKOJ`, `LIDI`) VALUES
+(1, 1,  101,  4),
+(2, 2,  103,  4),
+(3, 3,  102,  5),
+(4, 4,  202,  6),
+(5, 4,  201,  2),
+(6, 5,  201,  1),
+(7, 1,  102,  5);
+
+DROP TABLE IF EXISTS `POKOJ`;
+CREATE TABLE `POKOJ` (
+  `CISLO` int(8) unsigned NOT NULL AUTO_INCREMENT,
+  `TYP_ID` int(8) unsigned NOT NULL,
+  PRIMARY KEY (`CISLO`),
+  KEY `TYP_ID` (`TYP_ID`),
+  CONSTRAINT `POKOJ_ibfk_1` FOREIGN KEY (`TYP_ID`) REFERENCES `TYP_POKOJE` (`ID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+INSERT INTO `POKOJ` (`CISLO`, `TYP_ID`) VALUES
+(101, 1),
+(103, 1),
+(102, 2),
+(202, 2),
+(201, 3);
+
+DROP TABLE IF EXISTS `RECEPCNI`;
+CREATE TABLE `RECEPCNI` (
+  `OS_CISLO` int(8) unsigned NOT NULL AUTO_INCREMENT,
+  `PRIJMENI` varchar(32) COLLATE utf8_bin NOT NULL,
+  `JMENO` varchar(32) COLLATE utf8_bin NOT NULL,
+  `ADRESA` varchar(64) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`OS_CISLO`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+INSERT INTO `RECEPCNI` (`OS_CISLO`, `PRIJMENI`, `JMENO`, `ADRESA`) VALUES
+(12,  'Dorazilová', 'Iveta',  'Námorní 10, Brno'),
+(13,  'Bednárová',  'Vlasta', 'Lidická 5, Brno'),
+(14,  'Nováková', 'Jana', 'Osvoboditelu 47, Ostrava'),
+(15,  'Krivá',  'Lucie',  'Alšova 12, Olomouc'),
+(16,  'Trefná', 'Katarina', 'Horákova 8, Prerov');
+
+DROP TABLE IF EXISTS `REZERVACE`;
+CREATE TABLE `REZERVACE` (
+  `ID_REZ` int(8) unsigned NOT NULL AUTO_INCREMENT,
+  `DATUM` date NOT NULL,
+  `VLASTNIK` int(8) unsigned NOT NULL,
+  PRIMARY KEY (`ID_REZ`),
+  KEY `VLASTNIK` (`VLASTNIK`),
+  CONSTRAINT `REZERVACE_ibfk_1` FOREIGN KEY (`VLASTNIK`) REFERENCES `KLIENT` (`OS_CISLO`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+INSERT INTO `REZERVACE` (`ID_REZ`, `DATUM`, `VLASTNIK`) VALUES
+(1, '2014-12-02', 4),
+(2, '2014-12-01', 4);
+
+DROP TABLE IF EXISTS `SLUZBA`;
+CREATE TABLE `SLUZBA` (
+  `ID_SLUZBA` int(8) unsigned NOT NULL AUTO_INCREMENT,
+  `NAZEV` varchar(32) COLLATE utf8_bin NOT NULL,
+  `CENA` decimal(10,0) NOT NULL,
+  `POPIS` varchar(255) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`ID_SLUZBA`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+INSERT INTO `SLUZBA` (`ID_SLUZBA`, `NAZEV`, `CENA`, `POPIS`) VALUES
+(1, 'Bazén',  50, 'Krytý bazen poskytován s cenou za hodinu'),
+(2, 'Pingpong', 30, 'Pingpongový stul je umístený v telocvicne. Pálky si mužete pujcit na recepci. Cena je za jednu hru.'),
+(3, 'Trampolína', 40, 'Venkovní trampolína se platí po 15 minutách'),
+(4, 'Ctyrkolka',  250,  'Pujcení ctyrkolky na 30 minut'),
+(5, 'Kolo', 120,  'Zapujcení kola je možné na recepci. Cena je za 2 hodiny.');
+
+DROP TABLE IF EXISTS `TYP_POKOJE`;
+CREATE TABLE `TYP_POKOJE` (
+  `ID` int(8) unsigned NOT NULL AUTO_INCREMENT,
+  `TYP` varchar(15) COLLATE utf8_bin NOT NULL,
+  `KAPACITA` double NOT NULL,
+  `POPIS` varchar(100) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `2` (`TYP`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+INSERT INTO `TYP_POKOJE` (`ID`, `TYP`, `KAPACITA`, `POPIS`) VALUES
+(1, 'Ctyrluzko',  4,  'Standardní pokoj pro 4 lidi'),
+(2, 'Sestiluzko', 6,  'Standardní pokoj pro rodinu s kapacitou 6 lidí'),
+(3, 'Dvouluzko',  2,  'Aparartmán se strešním oknem a barem pro 2 lidi');
+
+DROP TABLE IF EXISTS `VYUZITI_SLUZBY`;
+CREATE TABLE `VYUZITI_SLUZBY` (
+  `ID` int(8) unsigned NOT NULL AUTO_INCREMENT,
+  `POBYT_POKOJ` int(8) unsigned NOT NULL,
+  `SLUZBA` int(8) unsigned NOT NULL,
+  `DATUM_OD` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `DATUM_DO` timestamp NULL DEFAULT NULL,
+  `POCET` int(4) unsigned DEFAULT NULL,
+  PRIMARY KEY (`ID`),
+  KEY `POBYT_POKOJ` (`POBYT_POKOJ`),
+  KEY `SLUZBA` (`SLUZBA`),
+  CONSTRAINT `VYUZITI_SLUZBY_ibfk_1` FOREIGN KEY (`POBYT_POKOJ`) REFERENCES `POBYT_POKOJ` (`ID_POBYT_POKOJ`),
+  CONSTRAINT `VYUZITI_SLUZBY_ibfk_2` FOREIGN KEY (`SLUZBA`) REFERENCES `SLUZBA` (`ID_SLUZBA`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+INSERT INTO `VYUZITI_SLUZBY` (`ID`, `POBYT_POKOJ`, `SLUZBA`, `DATUM_OD`, `DATUM_DO`, `POCET`) VALUES
+(1, 1,  1,  '2014-04-07 12:00:00',  '2014-04-07 16:00:00',  NULL),
+(2, 2,  2,  '2014-04-10 06:25:00',  NULL, 10),
+(3, 4,  2,  '2014-02-28 12:00:00',  NULL, 2),
+(4, 5,  2,  '2014-02-27 08:00:00',  NULL, 4),
+(5, 3,  3,  '2014-04-08 06:00:00',  '2014-04-09 10:00:00',  NULL);
+
+-- 2014-12-02 22:14:58

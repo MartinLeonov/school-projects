@@ -1,0 +1,22 @@
+{block content}
+<div class="container">
+ 
+{if $user->loggedIn && $user->isInRole('admin')}
+<h2 n:block=title>Editace udaju recepcni</h2>
+{control editStaffForm}
+
+
+<h2>Zmena hesla</h2>
+{control passwordStaffForm}
+{/if}
+
+{if !$user->loggedIn }
+<div class="alert alert-info" role="alert">Pro spravovani uzivatelu se musite <a n:href="sign:in">prihlasit</a>.</div>
+{/if}
+
+{if $user->isInRole('client') || $user->isInRole('staff') }
+<div class="alert alert-danger" role="alert">Nemate dostatecne opravneni.</div>
+{/if}
+
+</div>
+{/block}
