@@ -1,0 +1,23 @@
+Required external libraries installation:
+    gem install oauth
+    gem install awesome_print
+
+Usage: downloader.rb [options]
+
+Specific options:
+    -i, --interface INTERFACE        Select interface to operate with (twitter, forum)
+    -a, --action ACTION              Select action to do (show, load, download)
+    -s, --source [SOURCE]            Select source of data
+    -c, --account [ACCOUNT]          In case of twitter interface can be specified account
+
+Common options:
+    -h, --help                       Show this message
+
+Examples:
+    ./downloader.rb -i twitter -a show
+    ./downloader.rb -i twitter -a load
+    ./downloader.rb -i twitter -a download -s 571714714620862464
+    ./downloader.rb -i twitter -a download -s 568855878104784896
+    ./downloader.rb -i twitter -c FIT_VUT -a download
+    ./downloader.rb -i forum -s http://talk.manageiq.org/t/miq-systemd-support/555 -a load
+    ./downloader.rb -i forum -s http://talk.manageiq.org/t/miq-systemd-support/555 -a show

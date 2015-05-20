@@ -1,0 +1,184 @@
+  \documentclass[11pt,a4paper]{article}
+% rozmery stranky
+\usepackage[left=1.5cm,text={18cm, 25cm},top=2.5cm]{geometry}
+% cestina a fonty
+\usepackage[czech]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+% dalsi balicky
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{indentfirst}
+\usepackage{url}
+\usepackage[bookmarksopen,colorlinks,plainpages=false,urlcolor=blue,
+            unicode,linkcolor=black]{hyperref}
+
+\begin{document}
+
+  \begin{titlepage}
+    \begin{center}
+      \Huge
+      \textsc{Fakulta informačních technologií\\ Vysoké učení technické v~Brně}
+      \vspace{100px}
+      \begin{figure}[!h]
+        \centering
+        \includegraphics[height=5cm]{logo.jpg}
+      \end{figure}
+      \\[50mm]
+      \LARGE{Dokumentace k~projektu předmětu ISJ \,--\, Skriptovací jazyky
+             \newline
+             Stahování dat z~Twitteru a diskusního fóra}
+      \vfill
+    \end{center}
+    \Large{Roman Blanco (xblanc01) \hfill 2.4.2015}
+  \end{titlepage}
+
+  \tableofcontents
+  \newpage
+
+  \section{Úvod}
+
+    Dokumentace pojednává o~skriptu napsaném v~rámci předmětu Skriptovací
+    jazyky.
+
+    Zadání bylo rozděleno na dvě části. Jednou z~částí bylo napsat skript,
+    který stáhne všechny dosavadní příspěvky diskuzního fóra a uloží je lokálně
+    do souboru společně s~relevantními metainformacemi. Skript by také měl být
+    schopen rozpoznat nové příspěvky a zahájit jejich stahování.
+    Druhá část zadání spočívala v~úkolu napsat skript, jež bude sloužit ke
+    sledování účtu na sociální síti Twitter. Příspěvky mají být dle zadání
+    lokálně ukládány a mají být nalezeny případné odkazy na webové stránky a
+    stažen jejich obsah.
+
+    Pro jednoduchost a fakt, že v~obou částech řešení jsou využity totožné
+    metody (práce s~JSON soubory, zpracování parametrů, řešení chybových
+    stavů), jsou obě části zadání implementovány v~rámci jednoho souboru,
+    s~tím, že kontext pro práci s~fórem a se~sítí Twitter se přepíná pomocí
+    parametru, jak je popsáno níže, nebo také v~nápovědě skriptu, kterou lze
+    vyvolat spuštěním s~parametrem \texttt{-h} nebo \texttt{--help}.
+
+  \section{Twitter}
+
+    Rozhraní skriptu pro práci se sociální sítí Twitter je specifikováno pomocí
+    parametru \texttt{twitter} uvedeným za přepínačem \texttt{-i}.
+    Akce, která má být vykonána je specifikována parametrem \texttt{-a}.
+
+    \subsection{Načtení nových dat} \label{twitter-nacteni}
+
+      Je-li skript spuštěn s~parametrem \texttt{load} za přepínačem
+      \texttt{-a}, dojde ke stažení tzv. \textit{tweetů} vytvořených sledovaným
+      účtem.
+
+      Úvodním krokem je připojení se k~API sítě Twitter a načtení zpráv
+      uživatele. Pro umožnění připojení k~API a úspěšné autentifikaci aplikace
+      je použita knihovna třetí strany
+      \href{https://github.com/oauth-xx/oauth-ruby}{oauth}, jejiž použití
+      pro autentifikaci je popsáno na webových stránkách Twitteru určených pro
+      vývojáře.
+      Tuto knihovnu je možné nainstalovat jako Ruby Gem příkazem
+      \texttt{gem install oauth}
+
+      Po zaslání požadavku na
+      \href{https://dev.twitter.com/rest/reference/get/statuses/user_timeline}
+      {Twitter API} je skriptu poslána zpět odpověď ve formátu JSON, kterou
+      následně skript parsuje a vyfiltruje z~ní pouze požadované údaje
+      (identifikátor tweetu, datum a čas vytvoření, text, URL adresy obsažené
+      v~textu). Tyto načtené zprávy jsou následně porovnány s~případně již
+      staženými, a jsou-li nalezeny novější, jsou přidány do souboru.
+
+    \subsection{Zobrazení obsahu lokálně uložených dat}
+
+      Při zadání parametru \texttt{show} za přepínačem \texttt{-a} skript
+      zobrazí soubor s~načtenými tweety. Zobrazeny jsou již výše zmíněné údaje:
+
+      \begin{itemize}
+        \item identifikátor tweetu
+        \item datum a čas vytvoření
+        \item text tweetu
+        \item URL adresy obsažené v~textu
+      \end{itemize}
+
+      O~výpis souboru se stará externí knihovna
+      \href{https://github.com/michaeldv/awesome_print}{awesome\_print}, což je
+      přehlednější modifikace standardní knihovny PrettyPrint. Knihovnu
+      lze nainstalovat jako Gem příkazem \texttt{gem install awesome\_print}.
+
+    \subsection{Stažení URL adres}
+
+      \subsubsection{Bez poskytnuti identifikátoru}
+
+        Při spuštění skriptu s~parametrem \texttt{download}, přičemž není dále
+        specifikovaný identifikátor tweetu, se nejprve vykonají tytéž úkony,
+        jako při spuštění s~parametrem \texttt{load} (viz kapitola
+        \ref{twitter-nacteni}) a poté dojde ke stažení obsahu všech nalezených
+        URL odkazů v~nově načtených tweetech.
+
+      \subsubsection{S~identifikátorem}
+
+        Pokud je s~parametrem \texttt{download} zadaný i indentifikátor pomocí
+        přepínače \texttt{-s}, pokusí se skript vyhledat zprávu s~tímto
+        identifikátorem mezi tweety v~lokálně uloženém souboru. Pokud případně
+        nalezený tweet obsahuje alespoň jednu URL adresu, skript stáhne její
+        obsah.
+
+      Stažené odkazy mají vždy jako součást prefixu identifikační číslo tweetu,
+      z~něhož byly načteny, díky čemuž je možné lokálně uložit obsah z~více
+      zdrojů při jediném načtení timeline uživatele.
+
+    \subsection{Specifikovaný účet}
+
+      Skript je rozšířen o~možnost specifikování jiného, než defaultně
+      zvoleného účtu, který je zapsán přímo ve zdrojovém kódu.
+      Pokud je pomocí přepínač \texttt{-c} zadaný twitter účet, skript bude
+      pracovat právě se specifikovaném účtem. Při načtení tweetu do lokalního
+      souboru je součástí prefixu souboru take název sledovaného účtu, čímž je
+      vyřešen problem s~přepsaním načtených dat v~lokálním souboru vyřešen.
+
+  \section{Fórum}
+
+    Stejně tak, jako je rozhraní pro práci se sítí Twitter specifikováno
+    parametrem \texttt{twitter}, je rozhraní pro práci s~diskuzním fórem
+    specifikováno parametrem \texttt{forum} za přepínačem \texttt{-i}.
+
+    Nutným požadavkem při práci s~fórem je zadání URL adresy požadovaného
+    vlákna pomocí přepínače \texttt{-s} a operace, která se má provést
+    přepínačem \texttt{-a}. Z~adresy je pak regulárním výrazem vyfiltrováno
+    identifikační číslo vlákna, které slouží k~odlišení lokálně uloženého
+    souboru, pro případ, že by uživatel měl zájem sledovat skriptem více vláken
+    současně.
+
+    \subsection{Načtení dat}
+
+      Vybrané fórum \href{http://talk.manageiq.org}{talk.manageiq.org} je
+      provozováno aplikací \href{http://www.discourse.org}{Discourse},
+      která nabízí v~tuto chvíli ještě nepříliš propracované API,
+      avšak dostačující ke získání potřebných dat z~fóra.
+      Ukázka práce s~API byla demonstrována
+      v~\href{https://meta.discourse.org/t/discourse-api-documentation/22706}
+      {příspěvku} na diskuzním fóru aplikace.
+
+      Při spuštění skriptu s~parametrem \texttt{load} dojde k~načtení
+      dat z~API zadané URL adresy vlákna, z~něhož jsou následně vyfiltrovaná
+      požadovaná data příspěvku v~daném vláknu:
+
+      \begin{itemize}
+        \item počet příspěvků ve vláknu
+        \item identifikátor příspěvku
+        \item autor příspěvku
+        \item text příspěvku
+      \end{itemize}
+
+      Podle načteného počtu příspěvku ve vláknu se pak určí, zda byly od
+      posledního načtení vlákna do lokálního souboru přidány nějaké nové
+      příspěvky a zapíší se do již vytvořeného lokálního souboru, případně
+      bude vytvořen nový soubor.
+
+    \subsection{Zobrazení dat}
+
+      Funkce parametru \texttt{show} je totožná jako při práci se sociální
+      sítí Twitter. Lokálně uložená data jsou vypsány pomocí knihovny
+      \href{https://github.com/michaeldv/awesome_print}{awesome\_print}.
+      Pokud lokální soubor pro dané vlákno ještě neexistuje, je na to uživatel
+      upozorněn chybovým hlášením.
+
+\end{document}

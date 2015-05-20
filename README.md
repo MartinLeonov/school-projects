@@ -17,7 +17,8 @@
 - [process synchronization](/ios/proj2/santa.c) [C] [8/15]
 
 **isj - Scripting Languages**
-- [downloading and comparing of subtitles](/isj/titles.py) [Python] [35/40]
+- [downloading and comparing of subtitles](/isj/python/titles.py) [Python] [35/40]
+- [downloading data from twitter and discussion forum](/isj/ruby/downloader.rb) [Ruby] [36/40]
 
 **ial - Algorithms**
 - [filling of abstract data type operations functions](/ial/du1/) [C] [10/10]
