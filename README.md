@@ -66,3 +66,6 @@
 
 **iis - Information Systems**
 - [hotel information system](/iis/) [PHP, SQL] [30/30]
+
+**ivh - VHDL Seminar**
+- [stopwatch and watches](/ivh/) [VHDL] [90/100]

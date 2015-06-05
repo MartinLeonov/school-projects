@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project outputprefix="clock">
+
+    <!--  Project description -->
+    <name>IVH projekt - hodiny a stopky</name>
+    <author>Roman Blanco</author>
+    <authoremail>xblanc01@stud.fit.vutbr.cz</authoremail>
+    <revision>20150423</revision>
+
+    <description> Zadani projektu: V jazyce VHDL implementujte jednoduche
+        hodiny (HH:MM:SS) a stopky, ktere se budou zobrazovat na monitoru
+        pripojenem k FITkitu pomoci rozhrani VGA. K prepinani rezimu
+        hodiny/stopky vyuzijte nektere tlacitko klavesnice. Stopky bude
+        mozne spustit, zastavit a vynulovat. K nastaveni hodin a obsluze
+        klavesnice lze vyuzit kod v mikrokontroleru. Logika hodin musi byt
+        implementovana v FPGA. </description>
+
+    <!--  MCU part -->
+    <mcu>
+        <file>main.c</file>
+    </mcu>
+
+    <!-- FPGA part -->
+    <fpga architecture="pc">
+        <include>fpga/ctrls/vga/package.xml</include>
+        <include>fpga/ctrls/keyboard/package.xml</include>
+        <file>fsm.vhd</file>
+        <file>engen.vhd</file>
+        <file>top.vhd</file>
+        <file>clock.vhd</file>
+        <file>stopclock.vhd</file>
+    </fpga>
+
+</project>
