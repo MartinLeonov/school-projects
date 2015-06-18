@@ -1,0 +1,3 @@
+Opravit navratove hodnoty
+Kontrola LEX_ERR pri kazdom zavolani get_token
+Prepisat inst_assign na isnt_load
