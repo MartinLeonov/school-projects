@@ -1,0 +1,640 @@
+\documentclass[12pt,a4paper,titlepage,final]{article}
+
+% cestina a fonty
+\usepackage[czech]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{textcomp}
+
+% odsazeni prvniho radku
+\usepackage{indentfirst}
+
+% balicky pro odkazy
+\usepackage[bookmarksopen,colorlinks,plainpages=false,urlcolor=blue,
+unicode,linkcolor=black]{hyperref}
+\usepackage{url}
+
+% obrazky
+\usepackage[dvipdf]{graphicx}
+
+% velikost stranky
+\usepackage[top=3.5cm, left=2.5cm, text={17cm, 24cm}, ignorefoot]{geometry}
+
+% cislovani (pouzito kvuli cislovani u pouzite literatury a zdroju)
+\usepackage{enumitem}
+
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  % uvodni strana
+  \begin{titlepage}
+
+    \centering
+    \includegraphics[height=5cm]{fitlogo.eps}
+
+    \vfill
+
+    \begin{center}
+      \begin{Large}
+        Dokumentace k~projektu pro předměty IFJ a IAL \\
+      \end{Large}
+      \bigskip
+      \begin{LARGE}
+        Implementace interpretu imperativního jazyka IFJ13 \\[1cm]
+      \end{LARGE}
+      \begin{large}
+        Tým 099, varianta a/2/I
+      \end{large}
+    \end{center}
+
+    \vfill
+
+    \begin{center}
+      \begin{Large}
+        \today
+      \end{Large}
+    \end{center}
+
+    \vfill
+
+    \begin{flushleft}
+      \subsubsection*{Autoři:}
+        \begin{tabular}{llr}
+          vedoucí: Michael Vlček & \texttt{xvlcek21} & 20\% \\
+          Radim Sváček           & \texttt{xsvace02} & 20\% \\
+          Roman Blanco           & \texttt{xblanc01} & 20\% \\
+          Vojtěch Mička          & \texttt{xmicka06} & 20\% \\
+          Richard Wolfert        & \texttt{xwolfe00} & 20\% \\
+        \end{tabular}
+    \end{flushleft}
+
+  \end{titlepage}\setlength{\parindent}{1cm}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  % obsah
+  \pagestyle{plain}
+  \thispagestyle{empty}
+  \pagenumbering{gobble}
+  \tableofcontents
+  \newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  % nastaveni cislovani
+  \pagestyle{plain}
+  \pagenumbering{arabic}
+  \setcounter{page}{3}
+  
+  % nastaveni mezery mezi odstavci a odsazeni prvniho radku
+  \setlength{\parindent}{1cm}
+  \setlength{\parskip}{0.5cm plus4mm minus3mm}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Úvod} \label{uvod}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    Tato dokumentace pojednává o~interpretu imperativního jazyka IFJ13,
+    zadaného jako skupi\-no\-vý projekt pro předmety IFJ a IAL. Níže najdete
+    popis implementace některých základních částí tohoto projektu, jako
+    náčrt konečného automatu pro lexikální analýzu, LL gramatiku syntaktického
+    analyzátoru, postupy některých předepsaných metod a algoritmů pro
+    využívané prvky či samotného interpretu. Dále pak rozdělení a koordinace
+    práce v~týmu a seznam využitých zdrojů informací.
+    \newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Lexikální analýza} \label{lexikalni-analyza}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    Implementace lexikálního analyzátoru je řešena jako konečný automat, jež
+    načítá znaky ze zdrojového souboru. Na základě těchto znaků vytváří
+    lexikální analyzátor tokeny, navíc souběžně vrací číselnou hodnotu
+    popisující daný token. Tokeny jsou reprezentovány abstraktním datovým
+    typem, který krom samotného tokenu, jež je uložen jako řetězec, uchovává
+    navíc i ukazatel na poslední znak a informaci o~celkovém počtu alokované
+    paměti. Pro omezení počtu alokací je paměť alokována po 8 bytech. 
+    V~případě, že neexistuje z~daného stavu konečného automatu přechod
+    do~libovolného dalšího stavu, vrací lexikální analyzátor informaci 
+    o~lexikální chybě ve zdrojovém programu. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Syntaktická analýza} \label{syntakticka-analyza}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    \subsection{Parser}
+
+    Syntaktická analýza tvoří základ každého překladače. Hlavní úlohou
+    syntaktické analýzy je zjistit, zda je zdrojový kód zapsán syntakticky
+    správně. V~tomto projektu jsme na analýzu základních programovacích
+    konstrukcí použili rekurzivní syntaktickou analýzu shora dolů. Tuto
+    metodu jsme implementovali s~použitím níže popsané LL gramatiky.
+
+    \subsection{Precedenční syntaktická analýza}
+
+    V~této části syntaktického analyzátoru je nejprve předáno řízení
+    vyhodnocování výrazu precedenční syntaktické analýze (\textit{PSA}), načež
+    je vyhodnocen samotný výraz. Pro kontrolu správnosti výrazu z~hlediska
+    syntaxe je oproti klasickému řešení pomocí zásobníku a derivačního stromu
+    potřeba využit dvousměrně vázaný seznam, který umožňuje skloubit zásobník
+    a derivační strom (potažmo abstraktní derivační strom) do jedné struktury.
+    Součástí syntaktické analýzy z~hlediska struktur je i tabulka symbolů a
+    statická tabulka přechodů pro určení priority a asociativity operátorů
+    (případně zde můžeme zahrnout i výstupní seznam instrukcí).
+
+    \subsection{Dvousměrně vázaný seznam}
+
+    Seznam funguje podobně jako zásobník (na začátku seznamu po inicializaci
+    ukončovací znak \texttt{\$}, vkládání prioritně/asociativních znaků
+    \texttt{<}, ...). Veškeré prvky dvousměrně vázaného seznamu (včetně
+    terminálů) jsou uloženy ve formě instrukcí, stejným způsobem jako
+    instrukce ve výstupním seznamu. V~případě načtení terminálu je do seznamu
+    přidána nová \clqq instrukce \crqq, jejíž oba ukazatele na operandy jsou
+    hodnoty \texttt{NULL} a ostatní atributy (typ instrukce, ukazatel na
+    výsledek) jsou přiřazeny následovně podle typu terminálu:
+
+    \begin{enumerate}
+      \item \label{i} Pokud se jedná o~proměnnou, typ instrukce
+      \texttt{INST\_NOP} (prázdná instrukce, použita pouze pro reprezentaci
+      v~seznamu, nebude přidána do výstupního seznamu instrukcí) a ukazatel na
+      výsledek ukazuje do tabulky symbolů proměnných na místo, kde je uložena
+      příslušná proměnná. Pokud neexistuje, je vrácena chyba.
+
+      \item Pokud jde o~konstantu, vytvoří se nová položka v~tabulce symbolů
+      proměnných, jejíž klíč je řetězcová reprezentace této konstanty. Dále se
+      postupuje analogický jako u~bodu \ref{i}.
+
+      \item Pokud jde o~znaménko nebo levou závorku, typ instrukce je hodnota
+      tohoto znaménka v~naší enumeraci, ukazatel na výsledek je \texttt{NULL}.
+    \end{enumerate}
+
+    Terminální symboly gramatiky jsou postupně nasouvány do seznamu podobně
+    jako u~zásobníku. Aplikace redukce podle pravidel funguje také podobně,
+    ale při aplikaci pravidla je po kontrole jeho syntaxe rovnou možné přidat
+    instrukci na konec výstupního instrukčního seznamu. Pro ilustraci našeho
+    řešení uvádím příklad provádění redukce sčítání těsně před redukcí sčítání
+    a po ní:
+
+    \noindent
+    \textit{Stav obou seznamů před načtením posledního znaku '\texttt{;}',
+    který značí návrat řízení analýze rekurzivního sestupu:}
+
+    \begin{small}
+      \noindent
+      \begin{tabular}{|c|l|c|c|c||l|l|c|c|c|}
+
+        \multicolumn{5}{c}{Dvousměrně vázaný seznam} &
+        \multicolumn{5}{c}{Seznam instrukcí} \\
+
+        \hline
+
+        abstr. & instrukce & adr1 & adr2 & result &
+        abstr. & instrukce & adr1 & adr2 & result \\
+
+        \hline
+
+        \texttt{'\$'} & \texttt{semicolon} & \texttt{NULL} &
+        \texttt{NULL} & \texttt{NULL} & 
+        C $\rightarrow$ i & \texttt{INST\_ASSIGN} & \texttt{GEN0} &
+        \texttt{NULL} & \texttt{GEN0} \\
+
+        \texttt{'<'} & \texttt{LEFT\_ARROW} & \texttt{NULL} &
+        \texttt{NULL} & \texttt{NULL} &
+        C $\rightarrow$ i & \texttt{INST\_ASSIGN} & \texttt{GEN1} &
+        \texttt{NULL} & \texttt{GEN1} \\
+
+        C $\rightarrow$ i & \texttt{INST\_ASSIGN} & \texttt{GEN0} &
+        \texttt{NULL} & \texttt{GEN0} & & & & & \\
+
+        \texttt{'+'} & \texttt{plus} & \texttt{NULL} &
+        \texttt{NULL} & \texttt{NULL} & & & & & \\
+
+        C $\rightarrow$ i & \texttt{INST\_ASSIGN} & \texttt{GEN1} &
+        \texttt{NULL} & \texttt{GEN1} & & & & & \\
+
+        \hline
+
+      \end{tabular}
+    \end{small}
+
+    \noindent
+    \textit{Po načtení znaku se přidá podle statické tabulky přechodů znak 
+    '\texttt{>}'}:
+
+    \begin{small}
+      \noindent
+      \begin{tabular}{|c|l|c|c|c||l|l|c|c|c|}
+
+        \multicolumn{5}{c}{Dvousměrně vázaný seznam} &
+        \multicolumn{5}{c}{Seznam instrukcí} \\
+
+        \hline
+        abstr. & instrukce & adr1 & adr2 & result &
+        abstr. & instrukce & adr1 & adr2 & result \\
+
+        \hline
+
+        \texttt{'\$'} & \texttt{semicolon} & \texttt{NULL} &
+        \texttt{NULL} & \texttt{NULL} &C $\rightarrow$ i &
+        \texttt{INST\_ASSIGN} & \texttt{GEN0} & \texttt{NULL} &
+        \texttt{GEN0} \\
+
+        \texttt{'<'} & \texttt{LEFT\_ARROW} & \texttt{NULL} &
+        \texttt{NULL} & \texttt{NULL} & C $\rightarrow$ i &
+        \texttt{INST\_ASSIGN} & \texttt{GEN1} & \texttt{NULL} &
+        \texttt{GEN1} \\
+
+        C $\rightarrow$ i & \texttt{INST\_ASSIGN} & \texttt{GEN0} &
+        \texttt{NULL} & \texttt{GEN0} & & & & & \\
+
+        \texttt{'+'} & \texttt{plus} & \texttt{NULL} & \texttt{NULL} &
+        \texttt{NULL} & & & & & \\
+
+        C $\rightarrow$ i & \texttt{INST\_ASSIGN} & \texttt{GEN1} &
+        \texttt{NULL} & \texttt{GEN1} & & & & & \\
+
+        \texttt{'>'} & \texttt{RIGHT\_ARROW} & \texttt{NULL} & \texttt{NULL} &
+        \texttt{NULL} & & & & &  \\
+
+        \hline
+
+      \end{tabular}
+    \end{small}
+
+    \noindent
+    \textit{Provede se redukce C → C + C:}
+
+    \begin{small}
+      \noindent
+      \begin{tabular}{|l|l|c|c|c||l|l|c|c|c|}
+
+        \multicolumn{5}{c}{Dvousměrně vázaný seznam} &
+        \multicolumn{5}{c}{Seznam instrukcí} \\
+
+        \hline
+
+        abstr. & instrukce & adr1 & adr2 & result &
+        abstr. & instrukce & adr1 & adr2 & result \\
+
+        \hline
+
+        \texttt{'\$'} & \texttt{semicolon} & \texttt{NULL} & \texttt{NULL} &
+        \texttt{NULL} & C $\rightarrow$ i & \texttt{INST\_ASSIGN} &
+        \texttt{GEN0} & \texttt{NULL} & \texttt{GEN0} \\
+
+        C$\rightarrow$C+C & \texttt{INST\_PLUS} & \texttt{GEN0} &
+        \texttt{GEN1} & \texttt{GEN2} & C $\rightarrow$ i &
+        \texttt{INST\_ASSIGN} & \texttt{GEN1} & \texttt{NULL} &
+        \texttt{GEN1} \\
+
+        & & & & & C$\rightarrow$C+C & \texttt{INST\_PLUS} & \texttt{GEN0} &
+        \texttt{GEN1} & \texttt{GEN2} \\
+
+        \hline
+
+      \end{tabular}
+    \end{small}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Sémantická analýza} \label{semanticka-analyza}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    Sémantická analýza je v~našem projektu řešena částečně v~syntaktickém
+    analyzátoru a částečně v~interpretu. Při syntaktické analýze jsou
+    detekovány statické sémantické chyby a interpret má na starost detekci
+    běhových či sémantických chyb až při samotné interpretaci programu.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Algoritmy pro práci s~řetězci} \label{algoritmy}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    \subsection{Implementace řadícího algoritmu}
+
+    Ze~zadání vyplývala povinnost implementovat vestavěnou funkci pro řazení
+    řetězce pomocí algoritmu Heapsort. Jedná se o~řadící algoritmus
+    s~linearitmetickou složitostí. Základem tohoto algoritmu je halda, která
+    je reprezentována samotným řetězcem, který je vstupním parametrem funkce.
+    Díky tomu nemá algoritmus žádné výraznější nároky na paměť.
+
+    Funkce nejprve ustaví haldu, jež je přímo ve~vstupním řetězci. Následně se
+    provádí odebírání vrcholu haldy a jeho záměna s~posledním prvkem. Poté
+    následuje rekonsturkce již zkrácené haldy, která opět ustaví haldu do
+    korektní podoby. Tento cyklus se provádí, dokud jsou prvky k~řazení.
+
+    Rekontrukce haldy probíhá v~cyklu, kdy je třeba ověřit, zda je otcovský
+    uzel větší než oba synovské uzly. V~opačném případě dojde k~jejich záměně,
+    přičemž se musí pokračovat i s~haldou, jejíž otcovský uzel je nyní
+    aktuálně vyměněný prvek. Tento jev se opakuje, dokud není dosaženo
+    pravidla haldy.
+
+    \subsection{Implementace vyhledávacího algoritmu}
+
+    Stejně jako v~případě řadícího algoritmu, byl i algoritmus pro vyhledávání
+    v~poli určen zadáním. Pro implementaci bylo tedy nutné využít
+    Knuth–Morris–Prattův algoritmus řazení pole. Ten je založený na myšlence,
+    kdy je zbytečné porovnávat znaky, jež již porovnány byly. K~tomu, aby bylo
+    možno omezit opětovné porovnávání znaků je nutné implementovat pole hodnot
+    pro každou pozici řetězce, které označují index řetězce, na který se
+    funkce při neúspěšném porovnání vrátí a bude porovnávat další znaky
+    s~dalšími znaky zdrojového řetězce. Vstupem funkce je kromě hledaného
+    řetěze i zdrojový řetězec. Funkce vrací index zdrojového řetězce, na
+    kterém byla nalezena shoda.
+
+    Nejprve je nutné vytvořit pole hodnot, které je vytvořeno na základě
+    hledaného řetězce. V~něm se můžou vyskytovat opakující se sekvence znaků,
+    které je možno přeskočit. Například při řetězci \textsl{ABABC} není nutné
+    opakovaně porovnávaly znaky \textsl{AB}, ale při neshodě na pátém znaku je
+    možné se vrátit na třetí znak a pokračovat. Výsledné pole tak vypadá
+    následovně -- [-1,0,0,1,2].
+
+    Poté již přichází na řadu samotné vyhledávání. V ideálním případě se při
+    shodě s~prvním znakem hledaného řetězce začnou porovnávat další znaky až
+    do dosažení konce hledaného řetězce, načež se vrátí index shody s~prvním
+    znakem. Pokud ovšem kdykoliv během porovnávání narazí na neshodu znaků,
+    obnoví se index v~hledaném řetězci tak, že se k~hodnotě počátku shody
+    přičte hodnota z~pomocného pole na indexu neshody. Díky tomu se omezí
+    počet porovnávání již porovnaných znaků a výsledný proces je rychlejší.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Způsob a řešení realizace tabulky symbolů} \label{tabulka-symbolu}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    \subsection{Způsob realizace tabulky symbolů}
+
+    Ze zadání byl určen způsob realizace tabulky symbolů, v~našem případě
+    binárním stromem. Nejprve bylo potřeba z~opory a přednášek k~předmětu IAL
+    zjistit informace o~binárním stromu, tedy že se jedná o~strom prvků, kde
+    každý prvek, krom posledních, má dva ukazatele na levý a pravý podstrom.
+    V~levém podstromu se pak uchovávají hodnoty nižší než jejich kořenový
+    prvek a v~pravém podstromu hodnoty vyšší.
+
+    \subsection{Binární strom}
+
+    Prvním důležitým bodem po získání informací o~binárním stromu bylo
+    ujasnění si, k~čemu tabulka symbolů slouží a jaké operace nad ní budou
+    požadovány. Jelikož v~každém prvku bude potřeba uchovávat více informací,
+    zvolili jsme jako každou položku stromu strukturu. Dále jsme se rozhodli
+    realizovat dvě odlišené tabulku symbolů. Jednu pro uchovávání proměnných
+    a druhou pro funkce. To zejména kvůli přehlednosti při jejich používání.
+
+    \subsection{Tabulka symbolů proměnných}
+
+    Do tabulky symbolů proměnných je jako unikátní vyhledávací klíč uvedeno
+    jméno proměnné a dva ukazatele na každý podstrom (v~případě
+    neexistujícího podstromu nastavené na hodnotu \texttt{NULL}). Dále bylo
+    zjevné, že je potřeba uchovat datový typ proměnné a její data. Tyto dva
+    prvky jsme se pro přehlednost rozhodli uložit do další struktury a
+    uchovávaná data pak realizovat unionem, pro jeho výhodné uložení v~paměti,
+    \clqq union zabírá v~paměti jen tolik místa, kolik největší jeho
+    položka\crqq. Union obsahuje položky pro uchování datového typu
+    \texttt{integer}, \texttt{double}, \texttt{string} a \texttt{boolean}.
+    Pro datový typ \texttt{NULL} není třeba mít vyhrazenou položku, neboť
+    neuchovává žádná data.
+
+    \subsection{Tabulka symbolů funkcí}
+
+    Tabulka symbolů pro funkce obsahovala nejprve pouze jméno funkce jako
+    unikátní vyhledávací klíč, dvojici ukazatelů na podstromy a položku
+    uchovávající počet parametrů funkce. S~vývojem parseru však bylo
+    zjištěno, že je potřeba přidat ukazatel na seznam instrukcí a také
+    ukazatel na tabulku symbolů proměnných. Pro práci s~oběma typy tabulek
+    bylo potřeba udělat funkce pro inicializaci, vyhledávání, vkládání a
+    zrušení celé tabulky. Funkce pro práci s~tabulkou symbolů pro funkce a
+    proměnné jsou v~principu stejné, ale místy se liší ve funkčnosti. Krom
+    rozdílných parametrů (kvůli rozdílným prvkům ve strukturách) například
+    funkce pro vyhledávání v~tabulce proměnných při shodě klíčů provede změnu
+    zadaných prvků, kdežto vyhledávací funkce pro tabulku symbolů funkcí
+    vrátí chybu (jelikož v~jazyce IFJ13 nelze přetěžovat funkce).
+    Nejzajímavější z~funkcí jsou funkce pro vkládání a rušení tabulky. Funkce
+    pro vkládání nejprve v~cyklu projde podle příslušného vyhledávacího klíče
+    celý binární strom, za použití funkce \texttt{strcmp(char *s1, char *s2)}.
+    \clqq Ta porovnává řetězce \texttt{s1} a \texttt{s2}. Pokud je \texttt{s1}
+    $<$ \texttt{s2} pak vrací hodnotu menší než $0$, pokud jsou si rovny, pak
+    vrací $0$, pokud je \texttt{s1} $>$ \texttt{s2} pak vrací hodnotu větší
+    než $0$.\crqq Pokud nebyla nalezena žádná odpovídající položka, alokuje
+    místo pro novou položku, pro řetězec reprezentující vyhledávací klíč
+    a pokud se jedná o~tabulku proměnných také datový typ \texttt{string},
+    nealokuje paměť i pro tento řetězec. Následně podle datového typu vloží
+    příslušná data z~předaných parametrů a vrátí v~případě úspěchu makro pro
+    úspěch, jinak makro pro chybu.
+
+    \subsection{Zásobník ukazatelů na položky binárního stromu}
+
+    Při realizaci funkce pro rušení binárního stromu jsme zjistili potřebu
+    zásobníku ukazatelů na položky binárního stromu. Zásobník jsme pojali jako
+    jednosměrně vázaný seznam struktur a několik funkcí pro práci s~nimi.
+    Jedna položka zásobníku vždy obsahuje užitečná data, tedy ukazatel
+    na položku tabulky symbolů a ukazatel na předešlý prvek seznamu
+    (zásobníku). Jako funkce pro práci s~ním pak stačilo implementovat
+    inicializaci, vkládání (\texttt{Push}) a odstranění (\texttt{Pop})
+    z~vrcholu zásobníku. Funkce pro přístup k~vrcholu zásobníku není potřeba,
+    kvůli snadnému přístupu k~datům ve struktuře. Funkce pro rušení binárního
+    stromu pak za použití zásobníku prochází binární strom a postupně ruší
+    jednotlivé prvky voláním funkce \texttt{free()}. Rovněž je třeba uvolnit
+    paměť nealokovanou pro vyhledávací klíč a v~případě, že se jedná o~tabulku
+    proměnných a uchovávaný datový typ byl \texttt{string}, pak i pro něj
+    nealokovanou paměť. Při inicializaci tabulky funkcí se rovnou vkládají
+    záznamy o~vestavěných funkcích jazyka IFJ13.
+
+    \subsection{Další funkce}
+
+    Během implementace dalších částí interpretu bylo zjištěno, že je potřeba
+    dalších funkcí. Mezi funkce pracující s~tabulkou proměnných přibyla
+    funkce, která projde a okopíruje existující tabulku do nové. Pro tuto bylo
+    třeba napsat pomocnou funkci, která postupně procházela binární strom až
+    k~nejlevějšímu prvku, \texttt{letftMost()} a plnila pomocný zásobník
+    ukazateli na každý prvek. Pak se skrze zásobník procházel strom odspodu
+    nahoru a kopírovala jednotlivé položky. V~každém prvku se také
+    kontrolovala existence jeho ukazatele na prvý podstrom, případně se nad
+    ním zavolala pomocná funkce \texttt{letftMost()}. Mezi funkce pracující
+    s~tabulkou funkcí pak také přibyla funkce která opět za pomoci funkce
+    \texttt{letftMost()} procházela strom a kontrolovala existenci ukazatele
+    na seznam instrukcí. Pak už jen několik testovacích funkcí kde stačily
+    jednoduché průchody binárním stromem a tisknutí položek.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Rozdělení práce v~týmu a komunikace} \label{rozdeleni}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    \subsection{Schůze a komunikace v týmu}
+
+    Díky blízkosti ubytování členů našeho týmu bylo možné konat poradní
+    schůze prakticky kdykoliv bylo potřeba, nebyla tedy potřeba obtěžovat se
+    s~organizací a zřizováním komunikačních nástrojů.
+
+    \subsection{Správa verzí zdrojového kódu}
+
+    Pro přehlednost vývoje interpretu jsme použili verzovací system Git
+    z~důvodu předchozí zkušenosti s~jeho používáním jednoho člena týmu.
+    Zdrojové kódy jsme měli uložené na soukromém repozitáři webové služby
+    \href{http://bitbucket.org/}{Bitbucket}.
+    \newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Literatura, reference, zdroje informací} \label{literatura}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    \begin{enumerate}[label={[\arabic*]}]
+      \item Skripta k~předmětu IAL
+      \item Skripta k~předmětu IFJ
+      \item Popis typu \texttt{union}:
+      \href{http://www.sallyx.org/sally/c/c16.php}
+        {http://www.sallyx.org/sally/c/c16.php}
+      \item Popis \texttt{strcmp}: 
+        \href{http://www.sallyx.org/sally/c/c19.php}
+          {http://www.sallyx.org/sally/c/c19.php}
+    \end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  % prilohy
+  \appendix
+  \newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Přílohy} \label{prilohy}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    \subsection{Konečný automat}
+
+    \includegraphics[height=14cm]{automat.eps}
+
+    \begin{tabular}{ll|ll|ll}
+      f1 & \texttt{identificator} & f16 & \texttt{left\_braces}
+        & f31 & \texttt{php\_entry1} \\
+      f2 & \texttt{variable1} & f17 & \texttt{right\_braces}
+        & f32 & \texttt{php\_entry2} \\
+      f3 & \texttt{semicolon} & f18 & \texttt{comma}
+        & f33 & \texttt{php\_entry3} \\
+      f4 & \texttt{int\_num} & f19 & \texttt{string\_literal}
+        & f34 & \texttt{comment\_line} \\
+      f5 & \texttt{equal} & f20 & \texttt{EOF}
+        & f35 & \texttt{comment} \\
+      f6 & \texttt{not\_equal} & f21 & \texttt{variable2}
+        & f36 & \texttt{comment1} \\
+      f7 & \texttt{concatenate} & f22 & \texttt{double\_num}
+        & f37 & \texttt{string\_literal} \\
+      f8 & \texttt{less} & f23 & \texttt{double\_num\_exp}
+        & f38 & \texttt{escape} \\
+      f9 & \texttt{greater} & f24 & \texttt{equal2}
+        & f39 & \texttt{escape\_x} \\
+      f10 & \texttt{plus} & f25 & \texttt{equal3}
+        & f40 & \texttt{escape\_x1} \\
+      f11 & \texttt{multiply} & f26 & \texttt{not\_equal2}
+        & f41 & \texttt{double\_num\_exp\_end} \\
+      f12 & \texttt{minus} & f27 & \texttt{not\_equal3}
+        & f42 & \texttt{double\_num\_end} \\
+      f13 & \texttt{comment} & f28 & \texttt{greater\_equal}
+        & s & Počáteční stav \\
+      f14 & \texttt{left\_parent} & f29 & \texttt{less\_equal} & & \\
+      f15 & \texttt{right\_parent} & f30 & \texttt{php\_entry} & & \\
+
+    \end{tabular}
+
+    \newpage
+
+    \subsection{Pravidla gramatiky}
+
+    \begin{tabular}{ l r l }
+
+      \hline
+      \texttt{C} & $\rightarrow$ & \texttt{i} \\
+      \hline
+      \texttt{C} & $\rightarrow$ & \texttt{C OPERATION C} \\
+      \hline
+      \texttt{plus} & $\rightarrow$ & \texttt{+} \\
+      \texttt{minus} & $\rightarrow$ & \texttt{-} \\
+      \texttt{divide} & $\rightarrow$ & \texttt{/} \\
+      \texttt{concat} & $\rightarrow$ & \texttt{.} \\
+      \texttt{less} & $\rightarrow$ & \texttt{<} \\
+      \texttt{lessequal} & $\rightarrow$ & \texttt{<=} \\
+      \texttt{greater} & $\rightarrow$ & \texttt{>} \\
+      \texttt{greaterequal} & $\rightarrow$ & \texttt{>=} \\
+      \texttt{equal} & $\rightarrow$ & \texttt{===} \\
+      \texttt{nonequal} & $\rightarrow$ & \texttt{!==} \\
+      \hline
+      \texttt{C} & $\rightarrow$ & \texttt{(C)} \\
+      \hline
+
+    \end{tabular}
+
+    Legenda:
+
+    \begin{tabular}{l l l}
+      \texttt{C} & -- & nonterminál \\
+      \texttt{i} & -- & terminál -- identifikátor \\
+      \texttt{plus, minus, ...} & -- & nontermální reprezentace znaménka \\
+      \texttt{OPERATION} & -- & \texttt{\{plus, minus, ...\}}\\
+    \end{tabular}
+
+    \subsection{LL gramatika}
+
+    \begin{tabular}{ l r l }
+
+      \hline
+      \texttt{PROGRAM} & $\rightarrow$ & \texttt{<?php MAIN} \\
+      \texttt{MAIN} & $\rightarrow$ & \texttt{MAIN MAIN} \\
+      \texttt{MAIN} & $\rightarrow$ & \texttt{eof} \\
+      \texttt{MAIN} & $\rightarrow$ & \texttt{STATEMENTS} \\
+
+      \hline
+      \texttt{MAIN} & $\rightarrow$ &
+        \texttt{function id ARGDEF \{ STATEMENTS \}} \\
+      \texttt{ARGDEF} & $\rightarrow$ & \texttt{variable NEXTARG} \\
+      \texttt{ARGDEF} & $\rightarrow$ & $\epsilon$ \\
+      \texttt{NEXTARG} & $\rightarrow$ & \texttt{, variable} \\
+      \texttt{NEXTARG} & $\rightarrow$ & $\epsilon$ \\
+
+      \hline
+      \texttt{STATEMENTS} & $\rightarrow$ & \texttt{return expr ;} \\
+      \texttt{STATEMENTS} & $\rightarrow$ &
+        \texttt{variable = ASSIGNMENT} \\
+      \texttt{STATEMENTS} & $\rightarrow$ &
+        \texttt{if (EXPR) \{ STATEMENTS \} else \{ STATEMENTS \}} \\
+      \texttt{STATEMENTS} & $\rightarrow$ &
+        \texttt{while (EXPR) \{ STATEMENTS \}} \\
+      \texttt{STATEMENTS} & $\rightarrow$ & \texttt{$\epsilon$} \\
+      \texttt{STATEMENTS} & $\rightarrow$ &
+        \texttt{STATEMENTS STATEMENTS} \\
+
+      \hline
+      \texttt{ASSIGNMENT} & $\rightarrow$ & \texttt{expr ;} \\
+      \texttt{ASSIGNMENT} & $\rightarrow$ & \texttt{id CALL ;} \\
+
+      \hline
+      \texttt{CALL} & $\rightarrow$ & \texttt{( PARAMETERS )} \\
+      \texttt{PARAMETERS} & $\rightarrow$ & \texttt{PAR NEXTPAR} \\
+      \texttt{PARAMETERS} & $\rightarrow$ & \texttt{$\epsilon$} \\
+      \texttt{NEXTPAR} & $\rightarrow$ & \texttt{, PAR NEXTPAR} \\
+      \texttt{NEXTPAR} & $\rightarrow$ & \texttt{$\epsilon$} \\
+
+      \hline
+      \texttt{PAR} & $\rightarrow$ & \texttt{int\_num} \\
+      \texttt{PAR} & $\rightarrow$ & \texttt{double\_num} \\
+      \texttt{PAR} & $\rightarrow$ & \texttt{string\_literal} \\
+      \texttt{PAR} & $\rightarrow$ & \texttt{null} \\
+      \texttt{PAR} & $\rightarrow$ & \texttt{false} \\
+      \texttt{PAR} & $\rightarrow$ & \texttt{true} \\
+      \texttt{PAR} & $\rightarrow$ & \texttt{variable} \\
+      \hline
+
+    \end{tabular}
+
+    \newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  \section{Metriky kódu} \label{metriky}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    \setlength{\parskip}{0cm}
+    \paragraph{Počet souborů:} 15 souborů
+    \paragraph{Počet řádků zdrojového textu:} 6217 řádků
+    \paragraph{Velikost statických dat:} 948B
+    \paragraph{Velikost spustitelného souboru:} 71556B (systém Linux, 64
+    bitová architektura, při pře\-kladu bez ladicích informací)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\end{document}

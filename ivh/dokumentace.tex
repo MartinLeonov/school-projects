@@ -1,0 +1,85 @@
+  \documentclass[11pt,a4paper]{article}
+% rozmery stranky
+\usepackage[left=1.5cm,text={18cm, 25cm},top=2.5cm]{geometry}
+% cestina a fonty
+\usepackage[czech]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+% dalsi balicky
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{indentfirst}
+\usepackage{url}
+\usepackage[bookmarksopen,colorlinks,plainpages=false,urlcolor=blue,
+            unicode,linkcolor=black]{hyperref}
+
+\begin{document}
+
+  \begin{titlepage}
+    \begin{center}
+      \Huge
+      \textsc{Fakulta informačních technologií\\ Vysoké učení technické v~Brně}
+      \vspace{100px}
+      \begin{figure}[!h]
+        \centering
+        \includegraphics[height=5cm]{logo.jpg}
+      \end{figure}
+      \\[50mm]
+      \LARGE{Dokumentace k~projektu předmětu IVH \,--\, Seminář VHDL
+             \newline
+             Hodiny a stopky}
+      \vfill
+    \end{center}
+    \Large{Roman Blanco (xblanc01@stud.fit.vutbr.cz) \hfill 1.5.2015}
+  \end{titlepage}
+
+  \tableofcontents
+  \newpage
+
+  \section{Úvod}
+ 
+    Tento dokument má za cíl popsat řešení k projektu do předmětu Semimář
+    VHDL \,--\, implementace hodin a stopek v jazyce pro popis
+    hardwaru \,--\, VHDL.
+
+  \section{Zadání}
+    
+    Zadáním projektu bylo implementovat jednoduché hodiny (ve formátu HH:MM:SS) a
+    stopky ke školní pomůcce FITkit, které budou zobrazováný na monitoru,
+    připojeném k FITkitu pomocí VGA rozhraní.
+
+Pro ovládání programu při práci se stopkami bude využita klávesnice, která je součástí FITkitu.
+    Implementovány mají být funkce pro spuštění stopek, zastavení a
+    vynulování.
+    Pro usnadnění práce je v projektu povoleno využít mikrokontroler k
+    obsluze klávesnice a nastavení hodin, samotná logika hodin však musí být
+    implementována v FPGA.
+
+  \section{Návrh řešení}
+
+    Zobrazení hodin a stopek na VGA rozhraní bude probíhat v rozlišení
+    $640\times480$. Jednotlivá čísla budou uloženy v paměti ROM, přičemž
+    paměťový nárok na jednu číslici je $6\times8$ bitů.
+
+    Počítání času bude realizováno generováním signálu s periodou 1 sekunda,
+    což umožní postupně inkrementovat hodnoty signálu reprezentující časový
+    údaj.
+
+    Číselná hodnota hodin bude uložena do 6 registrů, přičemž hodnoty v těchto
+    registrech mohou nabývat hodnoty 0 až 9. Každý registr bude představovat
+    jednu číslici v časovém údaji.
+
+    Hodnota těchto registrů slouží jako index k patřičnému číslu v paměti ROM.
+
+    Pro funkčnost stopek bude využit Moorův konečný automat, který bude pracovat se
+    stavy: \texttt{START}, \texttt{STOP} a \texttt{CLEAR}.
+
+    Popis stavů:
+
+    \begin{itemize}
+      \item \texttt{START} spuštění stopek
+      \item \texttt{STOP} zastavení stopek
+      \item \texttt{CLEAR} vynulování stopek
+    \end{itemize}
+
+\end{document}
