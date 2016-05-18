@@ -1,0 +1,224 @@
+%============================================================================
+% tento soubor pouzijte jako zaklad
+% (c) 2008 Michal Bidlo
+% E-mail: bidlom AT fit vutbr cz
+%============================================================================
+% kodovaní: UTF-8 (zmena prikazem iconv, recode nebo cstocs)
+%----------------------------------------------------------------------------
+% zpracování: make, make pdf, make desky, make clean
+%============================================================================
+% Šablonu upravil: Ing. Jaroslav Dytrych, idytrych@fit.vutbr.cz
+%============================================================================
+\documentclass[english]{fitthesis} % bez zadání - pro začátek práce, aby nebyl problém s překladem
+%\documentclass[zadani]{fitthesis} % odevzdani do wisu - odkazy jsou barevné
+%\documentclass[zadani,print]{fitthesis} % pro tisk - odkazy jsou černé
+%\documentclass[english,print]{fitthesis} % pro tisk - odkazy jsou černé
+% * Je-li prace psana v anglickem jazyce, je zapotrebi u tridy pouzit
+%   parametr english nasledovne:
+%      \documentclass[english]{fitthesis}
+% * Je-li prace psana ve slovenskem jazyce, je zapotrebi u tridy pouzit
+%   parametr slovak nasledovne:
+%      \documentclass[slovak]{fitthesis}
+
+\usepackage[czech,slovak,english]{babel}
+\usepackage[utf8]{inputenc} %kodovani
+\usepackage[T1]{fontenc}
+\usepackage{cmap}
+\usepackage{url}
+\usepackage{wrapfig}
+\usepackage{caption}
+\DeclareUrlCommand\url{\def\UrlLeft{<}\def\UrlRight{>} \urlstyle{tt}}
+
+%zde muzeme vlozit vlastni balicky
+\usepackage[autostyle]{csquotes}
+\usepackage{listings}
+\lstset{
+  language=HTML,
+  basicstyle=\footnotesize\ttfamily,
+  frame=single,
+}
+\usepackage[toc,page,header]{appendix}
+\RequirePackage{titletoc}
+\ifczech
+  \usepackage{ae}
+\fi
+
+\input{pisma.tex}
+
+% vypne funkci nové šablony, která automaticky nahrazuje uvozovky,
+% aby nebyly prováděny nevhodné náhrady v popisech API apod.
+\csdoublequotesoff
+
+% =======================================================================
+% balíček "hyperref" vytváří klikací odkazy v pdf, pokud tedy použijeme pdflatex
+% problém je, že balíček hyperref musí být uveden jako poslední, takže nemůže
+% být v šabloně
+\ifWis
+\ifx\pdfoutput\undefined % nejedeme pod pdflatexem
+\else
+  \usepackage{color}
+  \usepackage[unicode,colorlinks,hyperindex,plainpages=false,pdftex]{hyperref}
+  \definecolor{links}{rgb}{0.4,0.5,0}
+  \definecolor{anchors}{rgb}{1,0,0}
+  \def\AnchorColor{anchors}
+  \def\LinkColor{links}
+  \def\pdfBorderAttrs{/Border [0 0 0] }  % bez okrajů kolem odkazů
+  \pdfcompresslevel=9
+\fi
+\else % pro tisk budou odkazy, na které se dá klikat, černé
+\ifx\pdfoutput\undefined % nejedeme pod pdflatexem
+\else
+  \usepackage{color}
+  \usepackage[unicode,colorlinks,hyperindex,plainpages=false,pdftex,urlcolor=black,linkcolor=black,citecolor=black]{hyperref}
+  \definecolor{links}{rgb}{0,0,0}
+  \definecolor{anchors}{rgb}{0,0,0}
+  \def\AnchorColor{anchors}
+  \def\LinkColor{links}
+  \def\pdfBorderAttrs{/Border [0 0 0] } % bez okrajů kolem odkazů
+  \pdfcompresslevel=9
+\fi
+\fi
+
+%Informace o praci/projektu
+%---------------------------------------------------------------------------
+\projectinfo{
+  %Prace
+  project=BP,            %typ prace BP/SP/DP/DR
+  year=2016,             %rok
+  date=\today,           %datum odevzdani
+  %Nazev prace
+  title.cs={Editor dialogů v AngularJS pro ManageIQ},  %nazev prace v cestine ci slovenstine
+  title.en={Dialog Editor in AngularJS for ManageIQ}, %nazev prace v anglictine
+  %Autor
+  author={Roman Blanco},   %cele jmeno a prijmeni autora
+  author.name={Roman},   %jmeno autora (pro citaci)
+  author.surname={Blanco},   %prijmeni autora (pro citaci)
+  %author.title.p=Bc., %titul pred jmenem (nepovinne)
+  %author.title.a=PhD, %titul za jmenem (nepovinne)
+  %Ustav
+  department=UITS, % doplnte prislusnou zkratku dle ustavu na zadani: UPSY/UIFS/UITS/UPGM
+  %Skolitel
+  supervisor=Vojnar Tomáš, %cele jmeno a prijmeni skolitele
+  supervisor.name={Tomáš},   %jmeno skolitele (pro citaci)
+  supervisor.surname={Vojnar},   %prijmeni skolitele (pro citaci)
+  supervisor.title.p=Prof. Ing.,   %titul pred jmenem (nepovinne)
+  supervisor.title.a={Ph.D.},    %titul za jmenem (nepovinne)
+  %Klicova slova, abstrakty, prohlaseni a podekovani je mozne definovat
+  %bud pomoci nasledujicich parametru nebo pomoci vyhrazenych maker (viz dale)
+  %===========================================================================
+  %Klicova slova
+  keywords.cs={ManageIQ, AngularJS, JavaScript, HTML.}, %klicova slova v ceskem ci slovenskem jazyce
+  keywords.en={ManageIQ, AngularJS, JavaScript, HTML.}, %klicova slova v anglickem jazyce
+  %Abstract
+  abstract.cs={Hlavním cílem této bakalárské práce je návrh a implementace řešení pro editor dialogů pro aplikaci ManageIQ. Nový editor by měl být vytvořený jako jedno-stránová aplikace vytvořená pomocí JavaScriptové knihovny AngularJS a drag&drop techniky. Řešení mělo poskytnout komfortnější rozhraní koncovým uživatelůn, než nabízí současná implementace.}, % abstrakt v ceskem ci slovenskem jazyce
+  abstract.en={The main goal of this bachelor thesis is to design and implement a new solution for a Dialog Editor for the ManageIQ application. The new editor is supposed to be created as a single-page application implemented by using JavaScript library AngularJS and drag&drop technique. The solution should bring more comfortable interface for end users than the current editor does.} % abstrakt v anglickem jazyce
+  %Prohlaseni
+  declaration={Hereby I declare that this bachelor's thesis was prepared as an original author’s work under the supervision of prof. Ing. Tomáš Vojnar, Ph.D. and consultant Mgr. Martin Povolný. All the relevant information sources, which were used during preparation of this thesis, are properly cited and included in the list of references.},
+  %Podekovani (nepovinne)
+  %acknowledgment={Zde je možné uvést poděkování vedoucímu práce a těm, kteří poskytli odbornou pomoc.} % nepovinne
+}
+
+%Abstrakt (cesky, slovensky ci anglicky)
+\abstract[cs]{Hlavním cílem této bakalárské práce je návrh a implementace řešení pro editor dialogů pro aplikaci ManageIQ. Nový editor by měl být vytvořený jako jedno-stránová aplikace vytvořená pomocí JavaScriptové knihovny AngularJS a drag\&drop techniky. Řešení mělo poskytnout komfortnější rozhraní koncovým uživatelůn, než nabízí současná implementace.}
+\abstract[en]{The main goal of this bachelor thesis is to design and implement a new solution for a Dialog Editor for the ManageIQ application. The new editor is supposed to be created as a single-page application implemented by using JavaScript library AngularJS and drag\&drop technique. The solution should bring more comfortable interface for end users than the current editor does.}
+
+%Klicova slova (cesky, slovensky ci anglicky)
+\keywords[cs]{ManageIQ, AngularJS, JavaScript, HTML, uživatelská rozhraní.}
+\keywords[en]{ManageIQ, AngularJS, JavaScript, HTML, user interface.}
+
+%Prohlaseni (u anglicky psane prace anglicky, u slovensky psane prace slovensky)
+\declaration{Hereby I declare that this bachelor's thesis was prepared as an original author’s work under the supervision of prof. Ing. Tomáš Vojnar, Ph.D. and consultant Mgr. Martin Povolný. All the relevant information sources, which were used during preparation of this thesis, are properly cited and included in the list of references.}
+
+%Podekovani (nepovinne, nejlepe v jazyce prace)
+\acknowledgment{
+I would first like to thank my thesis supervisor prof. Ing. Tomáš Vojnar, Ph.D. and consultant Mgr. Martin Povolný for leading my bachelor thesis.
+I would also like to thank the members of the Red Hat CloudForms and the Red Hat UX Design teams for their advice and help.
+Finally I would like to thank my family for all the support throughout my years of study.
+}
+
+\begin{document}
+  % Vysazeni titulnich stran
+  % ----------------------------------------------
+  \maketitle
+  % Obsah
+  % ----------------------------------------------
+  \tableofcontents
+
+  % Seznam obrazku a tabulek (pokud prace obsahuje velke mnozstvi obrazku, tak se to hodi)
+\ifczech
+  \renewcommand\listfigurename{Seznam obrázků}
+\fi
+\ifslovak
+  \renewcommand\listfigurename{Zoznam obrázkov}
+\fi
+
+  % \listoffigures
+\ifczech
+  \renewcommand\listtablename{Seznam tabulek}
+\fi
+\ifslovak
+  \renewcommand\listtablename{Zoznam tabuliek}
+\fi
+
+  % \listoftables
+
+  % Text prace
+  % ----------------------------------------------
+  \input{obsah} % viz. obsah.tex
+
+  % Pouzita literatura
+  % ----------------------------------------------
+\ifslovak
+  \makeatletter
+  \def\@openbib@code{\addcontentsline{toc}{chapter}{Literatúra}}
+  \makeatother
+  \bibliographystyle{czechiso}
+\else
+  \ifczech
+    \makeatletter
+    \def\@openbib@code{\addcontentsline{toc}{chapter}{Literatura}}
+    \makeatother
+    \bibliographystyle{czechiso}
+  \else
+    \makeatletter
+    \def\@openbib@code{\addcontentsline{toc}{chapter}{Bibliography}}
+    \makeatother
+    \bibliographystyle{englishiso}
+  %  \bibliographystyle{alpha}
+  \fi
+\fi
+  \begin{flushleft}
+  \bibliography{literatura} % viz. literatura.bib
+  \end{flushleft}
+
+  % Prilohy
+  % ---------------------------------------------
+  \appendix
+\ifczech
+  \renewcommand{\appendixpagename}{Přílohy}
+  \renewcommand{\appendixtocname}{Přílohy}
+  \renewcommand{\appendixname}{Příloha}
+\fi
+\ifslovak
+  \renewcommand{\appendixpagename}{Prílohy}
+  \renewcommand{\appendixtocname}{Prílohy}
+  \renewcommand{\appendixname}{Príloha}
+\fi
+  \appendixpage
+
+\ifslovak
+  \section*{Zoznam príloh}
+  \addcontentsline{toc}{section}{Zoznam príloh}
+\else
+  \ifczech
+    \section*{Seznam příloh}
+    \addcontentsline{toc}{section}{Seznam příloh}
+  \else
+    \section*{List of Appendices}
+    \addcontentsline{toc}{section}{List of Appendices}
+  \fi
+\fi
+  \startcontents[chapters]
+  \printcontents[chapters]{l}{0}{\setcounter{tocdepth}{2}}
+  \input{prilohy} % viz. prilohy.tex
+\end{document}

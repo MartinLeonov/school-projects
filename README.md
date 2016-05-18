@@ -72,3 +72,6 @@
 
 **ifj - Formal Languages and Compilers**
 - [interpret of language based on PHP](/ifj/ifj13/) [C] [23/25]
+
+**ibp - Bachelor's thesis**
+- [dialog editor in angularjs for manageiq](/ibp/) [JavaScript]
